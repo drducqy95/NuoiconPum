@@ -59,14 +59,15 @@ async function generateAIContent(
   let apiKey = process.env.GEMINI_API_KEY;
   let modelName = 'gemini-1.5-flash';
 
+  if (aiSettings?.geminiModel?.trim()) {
+    modelName = aiSettings.geminiModel.trim();
+  }
+
   if (provider === 'gemini') {
     if (!aiSettings?.geminiApiKey?.trim()) {
       throw new Error('Chưa nhập Gemini API Key trong Cài đặt.');
     }
     apiKey = aiSettings.geminiApiKey.trim();
-    if (aiSettings?.geminiModel?.trim()) {
-      modelName = aiSettings.geminiModel.trim();
-    }
   }
 
   if (!apiKey) {

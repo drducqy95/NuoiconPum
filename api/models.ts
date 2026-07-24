@@ -17,10 +17,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { provider, geminiApiKey, openaiApiKey, openaiBaseUrl } = req.body || {};
 
     // 1. Fetch Google Gemini Models List
-    if (provider === 'gemini') {
-      const apiKey = geminiApiKey?.trim();
+    if (provider === 'gemini' || provider === 'system') {
+      const apiKey = geminiApiKey?.trim() || process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return res.status(400).json({ error: 'Vui lòng nhập Gemini API Key trước khi nạp danh sách model.' });
+        return res.status(400).json({ error: 'Chưa cấu hình GEMINI_API_KEY trên server hoặc chưa nhập API Key.' });
       }
 
       const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);

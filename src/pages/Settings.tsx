@@ -643,6 +643,49 @@ export const Settings: React.FC = () => {
             </div>
           </div>
 
+          {/* SYSTEM DEFAULT GEMINI MODEL SELECTION FORM */}
+          {aiSettings.provider === 'system' && (
+            <div className="bg-violet-50/60 border border-violet-200 rounded-xl p-4 space-y-3 animate-fade-in text-xs">
+              <h3 className="font-extrabold text-violet-900 flex items-center justify-between">
+                <span className="flex items-center">
+                  <Sparkles className="w-4 h-4 mr-1.5 text-violet-600" />
+                  Cấu Hình Mô Hình Gemini Cho API Key Mặc Định Hệ Thống
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleFetchModelsFromApi('gemini')}
+                  disabled={fetchingModels}
+                  className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
+                >
+                  <Download className={`w-3.5 h-3.5 ${fetchingModels ? 'animate-bounce' : ''}`} />
+                  <span>{fetchingModels ? 'Đang nạp...' : 'Tải Model từ Server'}</span>
+                </button>
+              </h3>
+
+              <p className="text-gray-600 leading-relaxed">
+                Đang sử dụng Gemini API Key cài sẵn từ máy chủ Vercel. Bạn có thể tự do lựa chọn phiên bản mô hình Gemini mong muốn dưới đây:
+              </p>
+
+              <div>
+                <label className="block text-gray-700 font-bold mb-1 flex items-center justify-between">
+                  <span>Chọn Mô Hình Gemini (Model):</span>
+                  <span className="text-[10px] text-violet-800 font-normal">Đã tìm thấy {fetchedGeminiModels.length} model</span>
+                </label>
+                <select
+                  value={aiSettings.geminiModel}
+                  onChange={(e) => setAiSettings(prev => ({ ...prev, geminiModel: e.target.value }))}
+                  className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer"
+                >
+                  {fetchedGeminiModels.map((m) => (
+                    <option key={m} value={m}>
+                      {m} {m === 'gemini-1.5-flash' ? '(Mặc định - Nhanh & Tối ưu)' : m === 'gemini-2.0-flash' ? '(Gemini 2.0 Flash mới nhất)' : m === 'gemini-1.5-pro' ? '(Gemini 1.5 Pro chuyên sâu)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           {/* CUSTOM GEMINI CONFIG FORM */}
           {aiSettings.provider === 'gemini' && (
             <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-4 space-y-3 animate-fade-in text-xs">
