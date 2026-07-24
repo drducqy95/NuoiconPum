@@ -15,6 +15,7 @@ import {
   easyStorage
 } from '../../data/easyStorage';
 import { FORMULA_DATABASE } from '../../data/formulaDatabase';
+import { PrintableEasyReport } from '../../components/PrintableEasyReport';
 import {
   Clock,
   Calendar,
@@ -209,7 +210,8 @@ export const EasyScheduleTab: React.FC = () => {
   const milkSummary = dayLog ? getDayTotalMilk(dayLog) : { daytimeMilk: 0, breastMilkTotal: 0, formulaMilkTotal: 0, nightMilk: 0, grandTotal: 0 };
 
   return (
-    <div className="space-y-6" ref={printRef}>
+    <>
+    <div className="space-y-6">
       {/* Top Banner Control Panel */}
       <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-2xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-4">
@@ -748,6 +750,10 @@ export const EasyScheduleTab: React.FC = () => {
         </div>
       )}
     </div>
+
+      {/* Hidden Print-Only Report */}
+      {dayLog && <PrintableEasyReport ref={printRef} dayLog={dayLog} />}
+    </>
   );
 };
 
