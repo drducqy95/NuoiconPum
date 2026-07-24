@@ -57,7 +57,7 @@ async function generateAIContent(
 
   // 2. Custom Gemini API Key or System Default Key
   let apiKey = process.env.GEMINI_API_KEY;
-  let modelName = 'gemini-2.5-flash';
+  let modelName = 'gemini-1.5-flash';
 
   if (provider === 'gemini') {
     if (!aiSettings?.geminiApiKey?.trim()) {

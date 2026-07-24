@@ -22,7 +22,7 @@ export interface AISettings {
 export const DEFAULT_AI_SETTINGS: AISettings = {
   provider: 'system',
   geminiApiKey: '',
-  geminiModel: 'gemini-2.5-flash',
+  geminiModel: 'gemini-1.5-flash',
   openaiApiKey: '',
   openaiBaseUrl: 'https://api.openai.com/v1',
   openaiModel: 'gpt-4o-mini',

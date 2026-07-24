@@ -51,7 +51,7 @@ export const Settings: React.FC = () => {
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
 
   // Dynamic Fetched Models State
-  const [fetchedGeminiModels, setFetchedGeminiModels] = useState<string[]>(['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']);
+  const [fetchedGeminiModels, setFetchedGeminiModels] = useState<string[]>(['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']);
   const [fetchedOpenaiModels, setFetchedOpenaiModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState<boolean>(false);
 
@@ -286,7 +286,7 @@ export const Settings: React.FC = () => {
         ...prev,
         provider: 'openai',
         openaiBaseUrl: 'https://openrouter.ai/api/v1',
-        openaiModel: 'google/gemini-2.5-flash'
+        openaiModel: 'google/gemini-flash-1.5'
       }));
     } else if (presetName === 'ollama') {
       setAiSettings(prev => ({
