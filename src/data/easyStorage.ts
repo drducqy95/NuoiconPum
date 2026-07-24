@@ -482,5 +482,15 @@ ${dayLog.generalNotes ? `📌 **Ghi chú chung ngày:**\n${dayLog.generalNotes}`
       });
       return newId;
     }
+  },
+
+  getAllDayLogs: async (): Promise<EasyDayLog[]> => {
+    const logs: EasyDayLog[] = [];
+    await easyStore.iterate((value: EasyDayLog) => {
+      if (value && value.dateStr) {
+        logs.push(value);
+      }
+    });
+    return logs;
   }
 };

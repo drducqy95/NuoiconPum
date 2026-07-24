@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { signIn, signOut } from '../firebase';
-import { Home, BookOpen, Clock, Book, Bot, LogOut, Settings as SettingsIcon, Baby, Syringe } from 'lucide-react';
+import { signOut } from '../firebase';
+import { AuthModal } from './AuthModal';
+import { Home, BookOpen, Clock, Book, Bot, LogOut, Settings as SettingsIcon, Baby, Syringe, UserCheck } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const navItems = [
     { name: 'Tổng quan', path: '/', icon: Home },
@@ -54,11 +56,15 @@ export const Layout: React.FC = () => {
 
             <div className="flex flex-1 justify-end md:flex-none">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="hidden sm:inline text-sm text-gray-500">{user.email}</span>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full text-xs font-bold text-rose-800">
+                    <UserCheck className="w-4 h-4 text-rose-600" />
+                    <span className="max-w-[120px] sm:max-w-[200px] truncate">{user.displayName || user.email}</span>
+                  </div>
                   <button
                     onClick={signOut}
-                    className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    className="inline-flex items-center rounded-xl bg-white px-3 py-2 text-xs font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                    title="Đăng xuất"
                   >
                     <LogOut className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">Đăng xuất</span>
@@ -66,16 +72,19 @@ export const Layout: React.FC = () => {
                 </div>
               ) : (
                 <button
-                  onClick={signIn}
-                  className="rounded-md bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-extrabold text-white shadow-md hover:bg-rose-500 transition-colors cursor-pointer"
                 >
-                  Đăng nhập
+                  Đăng nhập / Tạo tài khoản
                 </button>
               )}
             </div>
           </div>
         </div>
       </header>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <Outlet />

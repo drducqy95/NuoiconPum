@@ -82,5 +82,11 @@ export const localDiaryApi = {
      if (existing) {
         await diaryStore.setItem(id, { ...existing, synced: true });
      }
+  },
+
+  async saveEntry(entry: LocalDiaryEntry): Promise<void> {
+    if (entry && entry.id) {
+      await diaryStore.setItem(entry.id, entry);
+    }
   }
 };

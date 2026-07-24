@@ -1,5 +1,15 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut as fbSignOut } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
+  signOut as fbSignOut 
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, collection, query, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, onSnapshot } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -42,23 +52,33 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-export const signIn = async () => {
+// Google Sign-In helper (supports optional extra OAuth scopes like Drive)
+export const signInWithGoogle = async (includeDriveScope: boolean = false) => {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   
+  if (includeDriveScope) {
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+  }
+
   try {
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const accessToken = credential?.accessToken;
+    if (accessToken) {
+      sessionStorage.setItem('gdrive_access_token', accessToken);
+    }
+    return result;
   } catch (error: any) {
     console.warn('Google Popup SignIn error, trying redirect fallback...', error);
     const code = error?.code || '';
 
     if (code === 'auth/unauthorized-domain') {
       alert('⚠️ Lỗi tên miền chưa được cấp phép trong Firebase:\n\nVui lòng vào Firebase Console > Authentication > Settings > Authorized domains và thêm tên miền Vercel của bạn (ví dụ: nuoiconpum.vercel.app).');
-      return;
+      throw error;
     }
 
     if (code === 'auth/popup-closed-by-user') {
-      // User closed popup manually
       return;
     }
 
@@ -68,11 +88,36 @@ export const signIn = async () => {
     } catch (redirectErr: any) {
       console.error('Google Redirect SignIn Error:', redirectErr);
       alert(`Không thể mở trang đăng nhập Google: ${redirectErr?.message || 'Vui lòng kiểm tra kết nối mạng.'}`);
+      throw redirectErr;
     }
   }
 };
 
-export const signOut = () => fbSignOut(auth);
+export const signIn = signInWithGoogle;
+
+// Email/Password Login
+export const signInWithEmail = async (email: string, pass: string) => {
+  return await signInWithEmailAndPassword(auth, email, pass);
+};
+
+// Email/Password Register
+export const signUpWithEmail = async (email: string, pass: string, name: string) => {
+  const res = await createUserWithEmailAndPassword(auth, email, pass);
+  if (res.user && name) {
+    await updateProfile(res.user, { displayName: name });
+  }
+  return res;
+};
+
+// Password Reset Email
+export const resetPassword = async (email: string) => {
+  return await sendPasswordResetEmail(auth, email);
+};
+
+export const signOut = () => {
+  sessionStorage.removeItem('gdrive_access_token');
+  return fbSignOut(auth);
+};
 
 // Test connection
 async function testConnection() {
