@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut as fbSignOut } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, collection, query, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp, orderBy, onSnapshot } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -42,7 +42,36 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-export const signIn = () => signInWithPopup(auth, new GoogleAuthProvider());
+export const signIn = async () => {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error: any) {
+    console.warn('Google Popup SignIn error, trying redirect fallback...', error);
+    const code = error?.code || '';
+
+    if (code === 'auth/unauthorized-domain') {
+      alert('⚠️ Lỗi tên miền chưa được cấp phép trong Firebase:\n\nVui lòng vào Firebase Console > Authentication > Settings > Authorized domains và thêm tên miền Vercel của bạn (ví dụ: nuoiconpum.vercel.app).');
+      return;
+    }
+
+    if (code === 'auth/popup-closed-by-user') {
+      // User closed popup manually
+      return;
+    }
+
+    // Fallback to Redirect for popup-blocked or mobile devices
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (redirectErr: any) {
+      console.error('Google Redirect SignIn Error:', redirectErr);
+      alert(`Không thể mở trang đăng nhập Google: ${redirectErr?.message || 'Vui lòng kiểm tra kết nối mạng.'}`);
+    }
+  }
+};
+
 export const signOut = () => fbSignOut(auth);
 
 // Test connection
