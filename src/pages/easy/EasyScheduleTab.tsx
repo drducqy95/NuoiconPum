@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import {
   EASY_PRESETS,
   EasyPresetId,
@@ -29,7 +30,9 @@ import {
   Milk,
   Bed,
   Smile,
-  Heart
+  Heart,
+  Printer,
+  FileDown
 } from 'lucide-react';
 
 export const EasyScheduleTab: React.FC = () => {
@@ -47,6 +50,13 @@ export const EasyScheduleTab: React.FC = () => {
 
   // Custom cycle configuration drawer/modal index
   const [editingCycleIndex, setEditingCycleIndex] = useState<number | null>(null);
+
+  // Print / Export PDF ref
+  const printRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `EASY_${selectedDate}_${selectedPreset}`,
+  });
 
   // Load schedule for selected date
   useEffect(() => {
@@ -199,7 +209,7 @@ export const EasyScheduleTab: React.FC = () => {
   const milkSummary = dayLog ? getDayTotalMilk(dayLog) : { daytimeMilk: 0, breastMilkTotal: 0, formulaMilkTotal: 0, nightMilk: 0, grandTotal: 0 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={printRef}>
       {/* Top Banner Control Panel */}
       <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-2xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-4">
@@ -214,15 +224,25 @@ export const EasyScheduleTab: React.FC = () => {
               </h2>
             </div>
 
-            {/* Date Selector */}
-            <div className="flex items-center space-x-2 bg-indigo-950/80 border border-indigo-800 rounded-xl px-3 py-1.5 self-start sm:self-auto">
-              <Calendar className="w-4 h-4 text-pink-400" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
-              />
+            {/* Date Selector & Export PDF */}
+            <div className="flex items-center space-x-2 self-start sm:self-auto">
+              <div className="flex items-center space-x-2 bg-indigo-950/80 border border-indigo-800 rounded-xl px-3 py-1.5">
+                <Calendar className="w-4 h-4 text-pink-400" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
+                />
+              </div>
+              <button
+                onClick={() => handlePrint()}
+                className="print:hidden flex items-center space-x-1.5 bg-indigo-950/80 border border-indigo-800 rounded-xl px-3 py-1.5 text-xs font-bold text-indigo-100 hover:bg-indigo-800 hover:text-yellow-300 transition-colors cursor-pointer"
+                title="Xuất PDF / In lịch trình EASY"
+              >
+                <FileDown className="w-4 h-4" />
+                <span className="hidden sm:inline">Xuất PDF</span>
+              </button>
             </div>
           </div>
 
