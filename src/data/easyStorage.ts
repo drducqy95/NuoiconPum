@@ -217,18 +217,119 @@ export function getSafeDurationMinutes(startStr: string, endStr: string, fallbac
   return diff;
 }
 
-// Generate default cycles log given preset and start wake time
-export function generateDefaultDayLog(presetId: EasyPresetId, morningWakeTime: string = '07:00', dateStr: string): EasyDayLog {
+// Active Config Persistence (so subsequent days inherit the chosen active preset)
+export interface EasyActiveConfig {
+  presetId: EasyPresetId;
+  morningWakeTime: string;
+  customCycles?: EasyCycleConfig[];
+}
+
+export function saveActiveConfig(config: EasyActiveConfig): void {
+  try {
+    localStorage.setItem('cungcon_easy_active_config', JSON.stringify(config));
+  } catch (e) {
+    console.warn('Failed to save active EASY config:', e);
+  }
+}
+
+export function getActiveConfig(): EasyActiveConfig {
+  try {
+    const str = localStorage.getItem('cungcon_easy_active_config');
+    if (str) {
+      const parsed = JSON.parse(str);
+      if (parsed && parsed.presetId) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to parse active EASY config:', e);
+  }
+  return { presetId: 'easy3', morningWakeTime: '07:00' };
+}
+
+// Calculate complete daily time statistics (Wake vs Sleep)
+export function getDayTotalDurations(dayLog: EasyDayLog): {
+  dayWakeMinutes: number;
+  daySleepMinutes: number;
+  nightSleepMinutes: number;
+  totalSleepMinutes: number;
+  totalWakeMinutes: number;
+  dayWakeStr: string;
+  daySleepStr: string;
+  nightSleepStr: string;
+  totalSleepStr: string;
+  totalWakeStr: string;
+} {
+  let dayWakeMinutes = 0;
+  let daySleepMinutes = 0;
+
+  const preset = EASY_PRESETS[dayLog.presetId] || EASY_PRESETS.easy3;
+
+  dayLog.cycles.forEach((c, idx) => {
+    const presetCycle = preset.cycles[idx];
+    const defaultWake = presetCycle?.wakeDurationMinutes || 60;
+    const defaultSleep = presetCycle?.sleepDurationMinutes || 120;
+
+    const wakeMins = getSafeDurationMinutes(c.eatStartTime, c.eatEndTime, defaultWake);
+    const sleepMins = getSafeDurationMinutes(c.sleepStartTime, c.sleepEndTime, defaultSleep);
+
+    dayWakeMinutes += wakeMins;
+    daySleepMinutes += sleepMins;
+  });
+
+  const bedtime = isValidTimeStr(dayLog.bedtimeStart) ? dayLog.bedtimeStart : "19:00";
+  const morningWake = isValidTimeStr(dayLog.morningWakeTime) ? dayLog.morningWakeTime : "07:00";
+
+  const nightSleepMinutes = getMinutesBetweenTimes(bedtime, morningWake);
+  const totalSleepMinutes = daySleepMinutes + nightSleepMinutes;
+  const totalWakeMinutes = Math.max(0, 1440 - totalSleepMinutes);
+
+  const formatMins = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m}p`;
+    return m > 0 ? `${h}h ${m}p` : `${h}h`;
+  };
+
+  return {
+    dayWakeMinutes,
+    daySleepMinutes,
+    nightSleepMinutes,
+    totalSleepMinutes,
+    totalWakeMinutes,
+    dayWakeStr: formatMins(dayWakeMinutes),
+    daySleepStr: formatMins(daySleepMinutes),
+    nightSleepStr: formatMins(nightSleepMinutes),
+    totalSleepStr: formatMins(totalSleepMinutes),
+    totalWakeStr: formatMins(totalWakeMinutes),
+  };
+}
+
+// Generate default cycles log given preset and start wake time (preserves existing night notes if provided)
+export function generateDefaultDayLog(
+  presetId: EasyPresetId,
+  morningWakeTime: string = '07:00',
+  dateStr: string,
+  existingLog?: EasyDayLog | null,
+  customCycles?: EasyCycleConfig[]
+): EasyDayLog {
   const preset = EASY_PRESETS[presetId] || EASY_PRESETS.easy3;
+  let cycleConfigs = customCycles || (presetId === 'custom' && existingLog ? existingLog.cycles.map(c => ({
+    id: c.cycleId,
+    name: c.cycleName,
+    wakeDurationMinutes: getSafeDurationMinutes(c.eatStartTime, c.eatEndTime, 90),
+    sleepDurationMinutes: getSafeDurationMinutes(c.sleepStartTime, c.sleepEndTime, 90)
+  })) : preset.cycles);
+
   let currentTime = isValidTimeStr(morningWakeTime) ? morningWakeTime : preset.morningWake;
 
-  const cycles: EasyCycleLog[] = preset.cycles.map((c) => {
+  const cycles: EasyCycleLog[] = cycleConfigs.map((c) => {
     const eatStartTime = currentTime;
     const eatEndTime = addMinutesToTime(eatStartTime, c.wakeDurationMinutes);
     const sleepStartTime = eatEndTime;
     const sleepEndTime = addMinutesToTime(sleepStartTime, c.sleepDurationMinutes);
 
     currentTime = sleepEndTime;
+
+    const existingCycle = existingLog?.cycles?.find(ec => ec.cycleId === c.id);
 
     return {
       cycleId: c.id,
@@ -237,12 +338,23 @@ export function generateDefaultDayLog(presetId: EasyPresetId, morningWakeTime: s
       eatEndTime,
       sleepStartTime,
       sleepEndTime,
-      milkVolumeMl: null,
-      milkType: 'breast',
-      wetDiaper: false,
-      dirtyDiaper: false,
-      notes: '',
-      sleptWellRating: 5
+      milkVolumeMl: existingCycle?.milkVolumeMl ?? null,
+      milkType: existingCycle?.milkType ?? 'breast',
+      directBreastfeedStartTime: existingCycle?.directBreastfeedStartTime,
+      directBreastfeedDurationMinutes: existingCycle?.directBreastfeedDurationMinutes,
+      directBreastfeedRating: existingCycle?.directBreastfeedRating,
+      directBreastfeedEstimatedMilkMl: existingCycle?.directBreastfeedEstimatedMilkMl,
+      bottleFeedStartTime: existingCycle?.bottleFeedStartTime,
+      bottleMilkVolumeMl: existingCycle?.bottleMilkVolumeMl,
+      bottleMilkType: existingCycle?.bottleMilkType,
+      formulaBrandId: existingCycle?.formulaBrandId,
+      formulaBrandName: existingCycle?.formulaBrandName,
+      wetDiaperCount: existingCycle?.wetDiaperCount ?? 0,
+      dirtyDiaperCount: existingCycle?.dirtyDiaperCount ?? 0,
+      wetDiaper: existingCycle?.wetDiaper ?? false,
+      dirtyDiaper: existingCycle?.dirtyDiaper ?? false,
+      notes: existingCycle?.notes ?? '',
+      sleptWellRating: existingCycle?.sleptWellRating ?? 5
     };
   });
 
@@ -252,17 +364,48 @@ export function generateDefaultDayLog(presetId: EasyPresetId, morningWakeTime: s
     morningWakeTime: isValidTimeStr(morningWakeTime) ? morningWakeTime : preset.morningWake,
     cycles,
     bedtimeStart: currentTime,
-    nightFeedCount: 1,
-    nightMilkVolumeMl: null,
-    nightMilkType: 'breast',
-    nightWetDiaper: true,
-    nightDirtyDiaper: false,
-    nightWakeCount: 1,
-    nightSleepQuality: 5,
-    nightNotes: '',
-    generalNotes: '',
+    nightFeedCount: existingLog?.nightFeedCount ?? 1,
+    nightMilkVolumeMl: existingLog?.nightMilkVolumeMl ?? null,
+    nightMilkType: existingLog?.nightMilkType ?? 'breast',
+    nightWetDiaper: existingLog?.nightWetDiaper ?? true,
+    nightDirtyDiaper: existingLog?.nightDirtyDiaper ?? false,
+    nightWakeCount: existingLog?.nightWakeCount ?? 1,
+    nightSleepQuality: existingLog?.nightSleepQuality ?? 5,
+    nightNotes: existingLog?.nightNotes ?? '',
+    generalNotes: existingLog?.generalNotes ?? '',
     updatedAt: Date.now()
   };
+}
+
+// Generate Custom EASY Day Log auto-calculated from parameters
+export function generateCustomDayLog(
+  morningWakeTime: string,
+  cycleCount: number,
+  wakeMinsPerCycle: number,
+  sleepMinsPerCycle: number,
+  skipNap4: boolean,
+  dateStr: string,
+  existingLog?: EasyDayLog | null
+): EasyDayLog {
+  const customCycles: EasyCycleConfig[] = [];
+  for (let i = 1; i <= cycleCount; i++) {
+    const isNap4 = (i === 4 || i === cycleCount) && skipNap4;
+    const sleepMins = isNap4 ? 0 : sleepMinsPerCycle;
+    customCycles.push({
+      id: i,
+      name: `Cữ ${i}${isNap4 ? ' (Chỉ Thức)' : ''}`,
+      wakeDurationMinutes: wakeMinsPerCycle,
+      sleepDurationMinutes: sleepMins,
+    });
+  }
+
+  saveActiveConfig({
+    presetId: 'custom',
+    morningWakeTime,
+    customCycles,
+  });
+
+  return generateDefaultDayLog('custom', morningWakeTime, dateStr, existingLog, customCycles);
 }
 
 // Recalculate subsequent cycles when a cycle's timing changes

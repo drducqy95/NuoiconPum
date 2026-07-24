@@ -6,12 +6,16 @@ import {
   EasyDayLog,
   EasyCycleLog,
   generateDefaultDayLog,
+  generateCustomDayLog,
   cascadeRecalculateCycles,
   addMinutesToTime,
   getSafeDurationMinutes,
   isValidTimeStr,
   getCycleTotalMilk,
   getDayTotalMilk,
+  getDayTotalDurations,
+  getActiveConfig,
+  saveActiveConfig,
   easyStorage
 } from '../../data/easyStorage';
 import { FORMULA_DATABASE } from '../../data/formulaDatabase';
@@ -32,8 +36,9 @@ import {
   Bed,
   Smile,
   Heart,
-  Printer,
-  FileDown
+  FileDown,
+  Sliders,
+  X
 } from 'lucide-react';
 
 export const EasyScheduleTab: React.FC = () => {
@@ -49,8 +54,13 @@ export const EasyScheduleTab: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  // Custom cycle configuration drawer/modal index
+  // Custom cycle configuration drawer/modal state
   const [editingCycleIndex, setEditingCycleIndex] = useState<number | null>(null);
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customCycleCount, setCustomCycleCount] = useState(4);
+  const [customWakeMins, setCustomWakeMins] = useState(90);
+  const [customSleepMins, setCustomSleepMins] = useState(120);
+  const [customSkipNap4, setCustomSkipNap4] = useState(false);
 
   // Print / Export PDF ref
   const printRef = useRef<HTMLDivElement>(null);
@@ -59,7 +69,7 @@ export const EasyScheduleTab: React.FC = () => {
     documentTitle: `EASY_${selectedDate}_${selectedPreset}`,
   });
 
-  // Load schedule for selected date
+  // Load schedule for selected date (inherits active saved config if new date)
   useEffect(() => {
     let isMounted = true;
     const loadSchedule = async () => {
@@ -70,10 +80,11 @@ export const EasyScheduleTab: React.FC = () => {
           setSelectedPreset(existing.presetId);
           setMorningWake(existing.morningWakeTime);
         } else if (isMounted) {
-          const newLog = generateDefaultDayLog('easy3', '07:00', selectedDate);
+          const active = getActiveConfig();
+          const newLog = generateDefaultDayLog(active.presetId, active.morningWakeTime, selectedDate, null, active.customCycles);
           setDayLog(newLog);
-          setSelectedPreset('easy3');
-          setMorningWake('07:00');
+          setSelectedPreset(active.presetId);
+          setMorningWake(active.morningWakeTime);
         }
       } catch (err) {
         console.error('Failed to load EASY schedule', err);
@@ -85,12 +96,31 @@ export const EasyScheduleTab: React.FC = () => {
     };
   }, [selectedDate]);
 
-  // Apply preset or wake time change
+  // Apply preset or wake time change (persists active config for future days)
   const handleApplyPreset = (presetId: EasyPresetId, wakeTime: string) => {
-    const newLog = generateDefaultDayLog(presetId, wakeTime, selectedDate);
+    saveActiveConfig({ presetId, morningWakeTime: wakeTime });
+    const newLog = generateDefaultDayLog(presetId, wakeTime, selectedDate, dayLog);
     setDayLog(newLog);
     setSelectedPreset(presetId);
+    setMorningWake(wakeTime);
     easyStorage.saveDayLog(newLog);
+  };
+
+  // Generate Custom Auto-calculated Schedule
+  const handleGenerateCustomSchedule = () => {
+    const newLog = generateCustomDayLog(
+      morningWake,
+      customCycleCount,
+      customWakeMins,
+      customSleepMins,
+      customSkipNap4,
+      selectedDate,
+      dayLog
+    );
+    setDayLog(newLog);
+    setSelectedPreset('custom');
+    easyStorage.saveDayLog(newLog);
+    setShowCustomModal(false);
   };
 
   const handleCycleEatStartTimeChange = (index: number, newTime: string) => {
@@ -117,6 +147,7 @@ export const EasyScheduleTab: React.FC = () => {
 
     if (index === 0) {
       setMorningWake(newTime);
+      saveActiveConfig({ presetId: selectedPreset, morningWakeTime: newTime });
     }
 
     const updatedDayLog = cascadeRecalculateCycles(dayLog, index, newCycle);
@@ -184,6 +215,17 @@ export const EasyScheduleTab: React.FC = () => {
     easyStorage.saveDayLog(updatedDayLog);
   };
 
+  // Toggle skip nap (set nap duration to 0m vs restore 30m)
+  const handleToggleSkipNap = (index: number) => {
+    if (!dayLog) return;
+    const orig = dayLog.cycles[index];
+    const isSkipped = orig.sleepStartTime === orig.sleepEndTime;
+    const newSleepEndTime = isSkipped
+      ? addMinutesToTime(orig.sleepStartTime, 30)
+      : orig.sleepStartTime;
+    handleCycleSleepEndTimeChange(index, newSleepEndTime);
+  };
+
   const handleUpdateCycle = (index: number, updatedFields: Partial<EasyCycleLog>, saveImmediate = true) => {
     if (!dayLog) return;
     const updatedCycles = [...dayLog.cycles];
@@ -208,11 +250,10 @@ export const EasyScheduleTab: React.FC = () => {
     setIsSaving(true);
     try {
       await easyStorage.syncToDailyDiary(dayLog);
-      setSyncMessage('Đã đồng bộ lịch EASY vào Nhật Ký Nuôi Con!');
-      setTimeout(() => setSyncMessage(null), 3500);
+      setSyncMessage('✅ Đã đồng bộ lịch EASY & thống kê ngày vào Nhật Ký Chăm Bé!');
+      setTimeout(() => setSyncMessage(null), 4000);
     } catch (err) {
-      console.error('Failed to sync diary', err);
-      setSyncMessage('Lỗi đồng bộ nhật ký.');
+      console.error('Failed to sync to diary', err);
     } finally {
       setIsSaving(false);
     }
@@ -220,6 +261,7 @@ export const EasyScheduleTab: React.FC = () => {
 
   const currentPresetInfo = EASY_PRESETS[selectedPreset] || EASY_PRESETS.easy3;
   const milkSummary = dayLog ? getDayTotalMilk(dayLog) : { daytimeMilk: 0, breastMilkTotal: 0, formulaMilkTotal: 0, nightMilk: 0, grandTotal: 0 };
+  const durationStats = dayLog ? getDayTotalDurations(dayLog) : null;
 
   return (
     <>
@@ -260,43 +302,20 @@ export const EasyScheduleTab: React.FC = () => {
             </div>
           </div>
 
-          {/* Preset & Morning Wake Picker Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-indigo-800/60">
-            {/* Choose Preset */}
-            <div className="md:col-span-8 space-y-1">
-              <label className="text-[11px] font-bold text-indigo-200 block">
-                Chọn Mẫu Lịch EASY Theo Độ Tuổi:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {(Object.keys(EASY_PRESETS) as EasyPresetId[]).map((pId) => {
-                  const p = EASY_PRESETS[pId];
-                  const isSelected = selectedPreset === pId;
-                  return (
-                    <button
-                      key={pId}
-                      onClick={() => handleApplyPreset(pId, morningWake)}
-                      className={`px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer border ${
-                        isSelected
-                          ? 'bg-yellow-400 text-indigo-950 font-extrabold border-yellow-300 shadow-md scale-[1.02]'
-                          : 'bg-indigo-950/50 text-indigo-100 border-indigo-800/80 hover:bg-indigo-800/50'
-                      }`}
-                    >
-                      <div className="text-xs font-black leading-snug">{p.name}</div>
-                      <div className="text-[10px] opacity-85 leading-none mt-0.5">{p.ageRange}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Morning Wake Time */}
-            <div className="md:col-span-4 space-y-1">
-              <label className="text-[11px] font-bold text-indigo-200 block">
-                Giờ Dậy Sáng (Khởi động cữ 1):
-              </label>
+          {/* Compact Preset & Morning Wake Picker Bar */}
+          <div className="pt-3 border-t border-indigo-800/60 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                  <Clock className="w-4 h-4 text-indigo-300 absolute left-3 top-1/2 -translate-y-1/2" />
+                <label className="text-[11px] font-extrabold text-indigo-200 block">
+                  Chọn Mẫu Lịch EASY Theo Độ Tuổi:
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                {/* Morning Wake Input */}
+                <div className="flex items-center space-x-1.5 bg-indigo-950/80 border border-indigo-800 rounded-xl px-2.5 py-1 text-xs">
+                  <Clock className="w-3.5 h-3.5 text-yellow-300" />
+                  <span className="text-[11px] text-indigo-200 font-bold hidden xs:inline">Giờ dậy:</span>
                   <input
                     type="time"
                     value={morningWake}
@@ -304,18 +323,47 @@ export const EasyScheduleTab: React.FC = () => {
                       setMorningWake(e.target.value);
                       handleApplyPreset(selectedPreset, e.target.value);
                     }}
-                    className="w-full bg-indigo-950/80 border border-indigo-800 rounded-xl pl-9 pr-3 py-2 text-xs font-extrabold text-yellow-300 focus:outline-none focus:border-yellow-400"
+                    className="bg-transparent text-yellow-300 font-extrabold focus:outline-none cursor-pointer text-xs"
                   />
                 </div>
 
+                {/* Auto Custom Calculator Button */}
                 <button
-                  onClick={() => handleApplyPreset(selectedPreset, morningWake)}
-                  title="Đặt lại cữ chuẩn"
-                  className="p-2 bg-indigo-800 hover:bg-indigo-700 text-white rounded-xl transition-colors cursor-pointer"
+                  onClick={() => setShowCustomModal(true)}
+                  className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-indigo-950 font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center space-x-1.5 cursor-pointer"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>⚡ Tự Động Tính Custom</span>
                 </button>
               </div>
+            </div>
+
+            {/* Compact Horizontal Scroll Pill Buttons */}
+            <div className="flex items-center space-x-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+              {(Object.keys(EASY_PRESETS) as EasyPresetId[]).map((pId) => {
+                const p = EASY_PRESETS[pId];
+                const isSelected = selectedPreset === pId;
+                return (
+                  <button
+                    key={pId}
+                    onClick={() => {
+                      if (pId === 'custom') {
+                        setShowCustomModal(true);
+                      } else {
+                        handleApplyPreset(pId, morningWake);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl whitespace-nowrap text-xs font-extrabold transition-all cursor-pointer border flex items-center space-x-1.5 ${
+                      isSelected
+                        ? 'bg-yellow-400 text-indigo-950 border-yellow-300 shadow-sm'
+                        : 'bg-indigo-950/60 text-indigo-100 border-indigo-800/80 hover:bg-indigo-800/60'
+                    }`}
+                  >
+                    <span>{p.name}</span>
+                    <span className="text-[10px] opacity-75 font-normal">({p.ageRange})</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -339,65 +387,97 @@ export const EasyScheduleTab: React.FC = () => {
         </div>
       )}
 
-      {/* Daily Summary Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-2xs space-y-1">
+      {/* Daily Summary Stat Cards (Milk & Wake/Sleep Durations) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
           <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Sữa Mẹ</span>
-          <div className="text-lg font-black text-rose-600 flex items-center">
-            <Heart className="w-4 h-4 text-rose-500 mr-1" />
+          <div className="text-base font-black text-rose-600 flex items-center">
+            <Heart className="w-3.5 h-3.5 text-rose-500 mr-1" />
             <span>{milkSummary.breastMilkTotal} ml</span>
           </div>
           <span className="text-[10px] text-gray-500 block">Sữa mẹ ước lượng + bình</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-2xs space-y-1">
+        <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
           <span className="text-[10px] font-bold text-gray-400 uppercase block">Sữa Công Thức</span>
-          <div className="text-lg font-black text-amber-600 flex items-center">
-            <Milk className="w-4 h-4 text-amber-500 mr-1" />
+          <div className="text-base font-black text-amber-600 flex items-center">
+            <Milk className="w-3.5 h-3.5 text-amber-500 mr-1" />
             <span>{milkSummary.formulaMilkTotal} ml</span>
           </div>
-          <span className="text-[10px] text-gray-500 block">Sữa công thức dạng bình</span>
+          <span className="text-[10px] text-gray-500 block">Sữa công thức bình</span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Sữa Ngày</span>
-          <div className="text-lg font-black text-indigo-600 flex items-center">
-            <Baby className="w-4 h-4 text-indigo-500 mr-1" />
-            <span>{milkSummary.daytimeMilk} ml</span>
-          </div>
-          <span className="text-[10px] text-gray-500 block">Sữa các cữ ban ngày</span>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Sữa Hôm Nay</span>
-          <div className="text-lg font-black text-emerald-600 flex items-center">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 mr-1" />
+        <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Lượng Sữa</span>
+          <div className="text-base font-black text-indigo-600 flex items-center">
+            <Baby className="w-3.5 h-3.5 text-indigo-500 mr-1" />
             <span>{milkSummary.grandTotal} ml</span>
           </div>
-          <span className="text-[10px] text-gray-500 block">Tổng lượng sữa đếm được</span>
+          <span className="text-[10px] text-gray-500 block">Ngày: {milkSummary.daytimeMilk}ml | Đêm: {milkSummary.nightMilk}ml</span>
+        </div>
+
+        {/* Duration Stats: Total Wake */}
+        <div className="bg-white rounded-2xl border border-amber-200/90 bg-amber-50/20 p-3 shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-amber-900 uppercase block flex items-center">
+            <Sun className="w-3 h-3 text-amber-600 mr-1" />
+            Thời Gian Thức
+          </span>
+          <div className="text-base font-black text-amber-900">
+            <span>{durationStats?.totalWakeStr || '0h'}</span>
+          </div>
+          <span className="text-[10px] text-amber-800/80 block">Ban ngày: {durationStats?.dayWakeStr}</span>
+        </div>
+
+        {/* Duration Stats: Total Sleep */}
+        <div className="bg-white rounded-2xl border border-indigo-200/90 bg-indigo-50/20 p-3 shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-indigo-900 uppercase block flex items-center">
+            <Bed className="w-3 h-3 text-indigo-600 mr-1" />
+            Thời Gian Ngủ
+          </span>
+          <div className="text-base font-black text-indigo-900">
+            <span>{durationStats?.totalSleepStr || '0h'}</span>
+          </div>
+          <span className="text-[10px] text-indigo-800/80 block">Ngày: {durationStats?.daySleepStr} | Đêm: {durationStats?.nightSleepStr}</span>
+        </div>
+
+        {/* Night Sleep Quality badge */}
+        <div className="bg-white rounded-2xl border border-purple-200/90 bg-purple-50/20 p-3 shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-purple-900 uppercase block flex items-center">
+            <Moon className="w-3 h-3 text-purple-600 mr-1" />
+            Giấc Ngủ Đêm
+          </span>
+          <div className="text-base font-black text-purple-950 flex items-center space-x-1">
+            <span>{dayLog?.nightSleepQuality ? '⭐'.repeat(dayLog.nightSleepQuality) : 'Tốt'}</span>
+          </div>
+          <span className="text-[10px] text-purple-800/80 block">Dậy đêm: {dayLog?.nightWakeCount ?? 0} lần</span>
         </div>
       </div>
 
-      {/* Main Cycles Timeline */}
+      {/* Main Cycles Timeline List */}
       {dayLog && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-gray-900 flex items-center">
-              <Sun className="w-4 h-4 text-amber-500 mr-2" />
-              Lịch Trình Các Cữ Ban Ngày ({dayLog.cycles.length} cữ)
+            <h3 className="text-base font-extrabold text-gray-900 flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              <span>Danh Sách Cữ Sinh Hoạt ({dayLog.cycles.length} Cữ Day-time)</span>
             </h3>
-            <span className="text-xs text-gray-500 font-medium">Bấm cữ để chỉnh chi tiết</span>
+            <span className="text-xs text-gray-500 font-bold">
+              Bắt đầu đêm: <strong className="text-indigo-900 font-black">{dayLog.bedtimeStart}</strong>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {dayLog.cycles.map((cycle, index) => {
               const totalMilk = getCycleTotalMilk(cycle);
               const isEditing = editingCycleIndex === index;
+              const isNapSkipped = cycle.sleepStartTime === cycle.sleepEndTime;
 
               return (
                 <div
                   key={index}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-xs hover:border-indigo-300 transition-all duration-200 overflow-hidden"
+                  className={`bg-white rounded-2xl border shadow-xs hover:border-indigo-300 transition-all duration-200 overflow-hidden ${
+                    isNapSkipped ? 'border-amber-300/80 bg-amber-50/10' : 'border-gray-200'
+                  }`}
                 >
                   {/* Card Header */}
                   <div className="bg-slate-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -411,6 +491,22 @@ export const EasyScheduleTab: React.FC = () => {
                     </div>
 
                     <div className="flex items-center space-x-2">
+                      {/* Skip Nap 4 / No-Nap Toggle Button */}
+                      {(index === dayLog.cycles.length - 1 || index === 3) && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSkipNap(index)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer border ${
+                            isNapSkipped
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-slate-200/80 text-gray-700 border-gray-300 hover:bg-amber-50'
+                          }`}
+                          title="Bấm để bật/tắt bỏ giấc ngủ ngắn cữ này"
+                        >
+                          {isNapSkipped ? '⚡ Đã bỏ Nap (Chỉ Thức)' : '🚫 Bỏ Nap 4'}
+                        </button>
+                      )}
+
                       <button
                         onClick={() => setEditingCycleIndex(isEditing ? null : index)}
                         className="p-1 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
@@ -448,10 +544,14 @@ export const EasyScheduleTab: React.FC = () => {
                       </div>
 
                       {/* SLEEP */}
-                      <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-2.5 space-y-1">
-                        <div className="flex items-center space-x-1.5 text-indigo-900 font-extrabold text-[11px]">
-                          <Bed className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>NGỦ GIẤC NÀY (S)</span>
+                      <div className={`border rounded-xl p-2.5 space-y-1 ${
+                        isNapSkipped ? 'bg-amber-100/40 border-amber-300/80' : 'bg-indigo-50/70 border-indigo-200/80'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5 text-indigo-900 font-extrabold text-[11px]">
+                            <Bed className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>{isNapSkipped ? 'BỎ NAP (CHỈ THỨC)' : 'NGỦ GIẤC NÀY (S)'}</span>
+                          </div>
                         </div>
                         <div className="flex items-center justify-between text-indigo-950">
                           <input
@@ -475,207 +575,200 @@ export const EasyScheduleTab: React.FC = () => {
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 text-gray-600">
                       <div className="flex items-center space-x-3">
                         <span className="flex items-center">
-                          <Milk className="w-3.5 h-3.5 text-amber-500 mr-1" />
-                          <strong>{totalMilk > 0 ? `${totalMilk} ml` : 'Chưa ghi bú'}</strong>
+                          <Milk className="w-3.5 h-3.5 text-indigo-500 mr-1" />
+                          <strong>Sữa cữ:</strong>&nbsp;<span className="font-bold text-indigo-950">{totalMilk} ml</span>
                         </span>
-                        <span>•</span>
                         <span className="flex items-center">
-                          <Baby className="w-3.5 h-3.5 text-pink-500 mr-1" />
-                          <strong>Tã: {cycle.wetDiaperCount || 0} ướt, {cycle.dirtyDiaperCount || 0} dơ</strong>
+                          <Baby className="w-3.5 h-3.5 text-amber-500 mr-1" />
+                          <strong>Tã:</strong>&nbsp;<span>💦{cycle.wetDiaperCount ?? (cycle.wetDiaper ? 1 : 0)} / 💩{cycle.dirtyDiaperCount ?? (cycle.dirtyDiaper ? 1 : 0)}</span>
                         </span>
                       </div>
 
                       <button
                         onClick={() => setEditingCycleIndex(isEditing ? null : index)}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                        className="text-xs text-indigo-600 font-bold hover:underline cursor-pointer"
                       >
-                        {isEditing ? 'Thu gọn' : 'Chỉnh cữ ăn & tã'}
+                        {isEditing ? 'Đóng chi tiết' : '+ Nhập chi tiết cữ'}
                       </button>
                     </div>
 
-                    {/* EXPANDED EDITING FORM */}
+                    {/* Detailed Collapsible Form */}
                     {isEditing && (
-                      <div className="pt-3 border-t border-gray-200 space-y-4 animate-fade-in text-xs">
-                        
-                        {/* 1. Ti Mẹ Trực Tiếp */}
-                        <div className="bg-rose-50/60 border border-rose-200 rounded-xl p-3 space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-rose-900 flex items-center">
-                              <Heart className="w-3.5 h-3.5 mr-1 text-rose-500" />
-                              1. Ti Mẹ Trực Tiếp
-                            </span>
-                            <span className="text-[10px] text-rose-700 font-semibold">Ghi chép cho bé bú mẹ</span>
+                      <div className="pt-3 border-t border-gray-100 space-y-4 animate-fade-in">
+                        {/* 1. Ti mẹ trực tiếp */}
+                        <div className="bg-rose-50/60 border border-rose-200/80 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center space-x-1.5 text-rose-900 font-extrabold text-xs">
+                            <Heart className="w-4 h-4 text-rose-600" />
+                            <span>1. Ti Mẹ Trực Tiếp</span>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                             <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Giờ bắt đầu:</label>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Giờ Bắt Đầu Ti:</label>
                               <input
                                 type="time"
                                 value={cycle.directBreastfeedStartTime || cycle.eatStartTime}
                                 onChange={(e) => handleUpdateCycle(index, { directBreastfeedStartTime: e.target.value })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold"
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-rose-500"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Thời gian (phút):</label>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Thời Gian Ti (Phút):</label>
                               <input
                                 type="number"
-                                min="0"
-                                max="120"
                                 placeholder="VD: 20"
                                 value={cycle.directBreastfeedDurationMinutes || ''}
-                                onChange={(e) => handleUpdateCycle(index, { directBreastfeedDurationMinutes: Number(e.target.value) })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold"
+                                onChange={(e) => handleUpdateCycle(index, { directBreastfeedDurationMinutes: e.target.value ? Number(e.target.value) : null })}
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-rose-500"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Đánh giá cữ ti:</label>
-                              <select
-                                value={cycle.directBreastfeedRating || 5}
-                                onChange={(e) => handleUpdateCycle(index, { directBreastfeedRating: Number(e.target.value) as any })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold"
-                              >
-                                <option value="5">⭐⭐⭐⭐⭐ Ti rất hiệu quả</option>
-                                <option value="4">⭐⭐⭐⭐ Ti tốt</option>
-                                <option value="3">⭐⭐⭐ Ti trung bình</option>
-                                <option value="2">⭐⭐ Bú vặt / Thiếp đi</option>
-                                <option value="1">⭐ Gắt ti / Ti ít</option>
-                              </select>
-                            </div>
-
-                            <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Ước lượng (ml):</label>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Ước Lượng Sữa (ml):</label>
                               <input
                                 type="number"
-                                step="10"
-                                placeholder="VD: 100"
+                                placeholder="VD: 90"
                                 value={cycle.directBreastfeedEstimatedMilkMl || ''}
-                                onChange={(e) => handleUpdateCycle(index, { directBreastfeedEstimatedMilkMl: Number(e.target.value) })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold"
+                                onChange={(e) => handleUpdateCycle(index, { directBreastfeedEstimatedMilkMl: e.target.value ? Number(e.target.value) : null })}
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-rose-500"
                               />
+                            </div>
+                          </div>
+
+                          {/* Đánh giá sao cữ ti */}
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[10px] font-bold text-gray-600">Đánh giá cữ ti mẹ:</span>
+                            <div className="flex space-x-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => handleUpdateCycle(index, { directBreastfeedRating: star as any })}
+                                  className={`text-base leading-none transition-transform hover:scale-125 cursor-pointer ${
+                                    (cycle.directBreastfeedRating || 5) >= star ? 'text-yellow-400' : 'text-gray-300'
+                                  }`}
+                                >
+                                  ★
+                                </button>
+                              ))}
                             </div>
                           </div>
                         </div>
 
                         {/* 2. Ti Bình */}
-                        <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3 space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-amber-900 flex items-center">
-                              <Milk className="w-3.5 h-3.5 mr-1 text-amber-600" />
-                              2. Ti Bình (Sữa Mẹ / Sữa Công Thức)
-                            </span>
-                            <span className="text-[10px] text-amber-700 font-semibold">Đếm ml chính xác</span>
+                        <div className="bg-amber-50/60 border border-amber-200/80 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center space-x-1.5 text-amber-900 font-extrabold text-xs">
+                            <Milk className="w-4 h-4 text-amber-600" />
+                            <span>2. Ti Bình (Sữa Mẹ vắt / Sữa Công Thức)</span>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                             <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Giờ ti bình:</label>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Giờ Ti Bình:</label>
                               <input
                                 type="time"
                                 value={cycle.bottleFeedStartTime || cycle.eatStartTime}
                                 onChange={(e) => handleUpdateCycle(index, { bottleFeedStartTime: e.target.value })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold"
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-amber-500"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Lượng sữa (ml):</label>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Lượng Sữa Bình (ml):</label>
                               <input
                                 type="number"
-                                step="10"
                                 placeholder="VD: 120"
                                 value={cycle.bottleMilkVolumeMl || ''}
-                                onChange={(e) => handleUpdateCycle(index, { bottleMilkVolumeMl: Number(e.target.value) })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-amber-900"
+                                onChange={(e) => handleUpdateCycle(index, { bottleMilkVolumeMl: e.target.value ? Number(e.target.value) : null })}
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-extrabold text-amber-900 focus:ring-1 focus:ring-amber-500"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Loại sữa ti bình:</label>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Loại Sữa:</label>
                               <select
                                 value={cycle.bottleMilkType || 'breast'}
                                 onChange={(e) => handleUpdateCycle(index, { bottleMilkType: e.target.value as any })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold"
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-amber-500"
                               >
-                                <option value="breast">🥛 Sữa mẹ vắt bình</option>
-                                <option value="formula">🍼 Sữa công thức</option>
+                                <option value="breast">Sữa mẹ (vắt)</option>
+                                <option value="formula">Sữa công thức</option>
                               </select>
                             </div>
-
-                            {/* Dropdown chọn hãng sữa công thức */}
-                            {cycle.bottleMilkType === 'formula' && (
-                              <div>
-                                <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Dòng sữa công thức:</label>
-                                <select
-                                  value={cycle.formulaBrandId || ''}
-                                  onChange={(e) => {
-                                    const bId = e.target.value;
-                                    const brand = FORMULA_DATABASE.find(b => b.id === bId);
-                                    handleUpdateCycle(index, {
-                                      formulaBrandId: bId,
-                                      formulaBrandName: brand ? brand.name : ''
-                                    });
-                                  }}
-                                  className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-indigo-900"
-                                >
-                                  <option value="">-- Chọn dòng sữa --</option>
-                                  {FORMULA_DATABASE.map(b => (
-                                    <option key={b.id} value={b.id}>{b.name}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
                           </div>
+
+                          {/* Chọn thương hiệu sữa nếu là sữa công thức */}
+                          {cycle.bottleMilkType === 'formula' && (
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Thương hiệu / Loại sữa công thức:</label>
+                              <select
+                                value={cycle.formulaBrandId || ''}
+                                onChange={(e) => {
+                                  const bId = e.target.value;
+                                  const found = FORMULA_DATABASE.find(f => f.id === bId);
+                                  handleUpdateCycle(index, {
+                                    formulaBrandId: bId || null,
+                                    formulaBrandName: found ? found.name : null
+                                  });
+                                }}
+                                className="w-full bg-white border border-amber-300 rounded px-2.5 py-1.5 text-xs text-amber-950 font-bold focus:ring-1 focus:ring-amber-500"
+                              >
+                                <option value="">-- Chọn hãng sữa từ thư viện --</option>
+                                {FORMULA_DATABASE.map(f => (
+                                  <option key={f.id} value={f.id}>
+                                    {f.name} ({f.stage}) - {f.originCountry}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
 
-                        {/* 3. Tã Đếm Số Lượng */}
-                        <div className="bg-slate-50 border border-gray-200 rounded-xl p-3 space-y-2">
-                          <span className="font-extrabold text-gray-800 block text-[11px]">
-                            👶 3. Đếm Số Lượng Tã Cữ Này:
-                          </span>
+                        {/* 3. Tã cữ ngày */}
+                        <div className="bg-sky-50/60 border border-sky-200/80 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center space-x-1.5 text-sky-900 font-extrabold text-xs">
+                            <Baby className="w-4 h-4 text-sky-600" />
+                            <span>3. Ghi Chép Tã Trong Cữ</span>
+                          </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Wet Diaper Counter */}
-                            <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-gray-200">
-                              <span className="text-xs font-bold text-blue-900">Tã Ướt (Đi Tè):</span>
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="flex items-center justify-between bg-white border border-sky-200 rounded-lg p-2">
+                              <span className="font-bold text-sky-950 text-xs">💦 Tã ướt (Đi tè):</span>
                               <div className="flex items-center space-x-2">
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateCycle(index, { wetDiaperCount: Math.max(0, (cycle.wetDiaperCount || 0) - 1) })}
-                                  className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 font-extrabold flex items-center justify-center cursor-pointer"
+                                  className="w-6 h-6 rounded bg-sky-100 text-sky-900 font-extrabold hover:bg-sky-200 cursor-pointer flex items-center justify-center"
                                 >
                                   -
                                 </button>
-                                <span className="font-black text-sm text-blue-900 w-4 text-center">{cycle.wetDiaperCount || 0}</span>
+                                <span className="font-black text-sky-950 text-sm w-4 text-center">{cycle.wetDiaperCount || 0}</span>
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateCycle(index, { wetDiaperCount: (cycle.wetDiaperCount || 0) + 1 })}
-                                  className="w-6 h-6 rounded bg-blue-100 text-blue-800 hover:bg-blue-200 font-extrabold flex items-center justify-center cursor-pointer"
+                                  className="w-6 h-6 rounded bg-sky-600 text-white font-extrabold hover:bg-sky-700 cursor-pointer flex items-center justify-center"
                                 >
                                   +
                                 </button>
                               </div>
                             </div>
 
-                            {/* Dirty Diaper Counter */}
-                            <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-gray-200">
-                              <span className="text-xs font-bold text-amber-900">Tã Dơ (Đi Ngoài):</span>
+                            <div className="flex items-center justify-between bg-white border border-amber-200 rounded-lg p-2">
+                              <span className="font-bold text-amber-950 text-xs">💩 Tã dơ (Đi ngoài):</span>
                               <div className="flex items-center space-x-2">
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateCycle(index, { dirtyDiaperCount: Math.max(0, (cycle.dirtyDiaperCount || 0) - 1) })}
-                                  className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 font-extrabold flex items-center justify-center cursor-pointer"
+                                  className="w-6 h-6 rounded bg-amber-100 text-amber-900 font-extrabold hover:bg-amber-200 cursor-pointer flex items-center justify-center"
                                 >
                                   -
                                 </button>
-                                <span className="font-black text-sm text-amber-900 w-4 text-center">{cycle.dirtyDiaperCount || 0}</span>
+                                <span className="font-black text-amber-950 text-sm w-4 text-center">{cycle.dirtyDiaperCount || 0}</span>
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateCycle(index, { dirtyDiaperCount: (cycle.dirtyDiaperCount || 0) + 1 })}
-                                  className="w-6 h-6 rounded bg-amber-100 text-amber-800 hover:bg-amber-200 font-extrabold flex items-center justify-center cursor-pointer"
+                                  className="w-6 h-6 rounded bg-amber-600 text-white font-extrabold hover:bg-amber-700 cursor-pointer flex items-center justify-center"
                                 >
                                   +
                                 </button>
@@ -684,7 +777,7 @@ export const EasyScheduleTab: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Ghi chú khác */}
+                        {/* Ghi chú cữ */}
                         <div>
                           <label className="text-[10px] font-bold text-gray-600 block mb-0.5">Ghi chú cữ này (Tâm trạng, chơi gì, phản ứng...):</label>
                           <input
@@ -695,10 +788,8 @@ export const EasyScheduleTab: React.FC = () => {
                             className="w-full bg-white border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                           />
                         </div>
-
                       </div>
                     )}
-
                   </div>
                 </div>
               );
@@ -714,28 +805,62 @@ export const EasyScheduleTab: React.FC = () => {
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              {/* 1. Night Sleep Duration */}
-              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3.5 space-y-2">
-                <span className="font-bold text-indigo-200 block text-[11px]">Giờ Bắt Đầu Ngủ Đêm:</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              {/* 1. Bedtime Start */}
+              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3 space-y-1.5">
+                <span className="font-bold text-indigo-200 block text-[11px]">Giờ Ngủ Đêm:</span>
                 <input
                   type="time"
                   value={dayLog.bedtimeStart}
                   onChange={(e) => handleUpdateNightLog({ bedtimeStart: e.target.value })}
-                  className="w-full bg-indigo-950 border border-indigo-700 rounded px-3 py-1.5 text-xs font-extrabold text-yellow-300"
+                  className="w-full bg-indigo-950 border border-indigo-700 rounded px-2.5 py-1 text-xs font-extrabold text-yellow-300"
                 />
               </div>
 
-              {/* 2. Night Sleep Quality */}
-              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3.5 space-y-2">
-                <span className="font-bold text-indigo-200 block text-[11px]">Đánh Giá Chất Lượng Giấc Đêm:</span>
-                <div className="flex space-x-1.5 pt-1">
+              {/* 2. Night Wake Count */}
+              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3 space-y-1.5">
+                <span className="font-bold text-indigo-200 block text-[11px]">Số Lần Bé Dậy Đêm:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={dayLog.nightWakeCount ?? 0}
+                  onChange={(e) => handleUpdateNightLog({ nightWakeCount: Number(e.target.value) })}
+                  className="w-full bg-indigo-950 border border-indigo-700 rounded px-2.5 py-1 text-xs font-extrabold text-yellow-300"
+                />
+              </div>
+
+              {/* 3. Night Feed Count & Volume */}
+              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3 space-y-1.5">
+                <span className="font-bold text-indigo-200 block text-[11px]">Số Cữ & Lượng Sữa Đêm (ml):</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="number"
+                    placeholder="Số cữ"
+                    value={dayLog.nightFeedCount ?? 0}
+                    onChange={(e) => handleUpdateNightLog({ nightFeedCount: Number(e.target.value) })}
+                    className="bg-indigo-950 border border-indigo-700 rounded px-2 py-1 text-xs font-bold text-white"
+                  />
+                  <input
+                    type="number"
+                    placeholder="ml sữa"
+                    value={dayLog.nightMilkVolumeMl ?? ''}
+                    onChange={(e) => handleUpdateNightLog({ nightMilkVolumeMl: e.target.value ? Number(e.target.value) : null })}
+                    className="bg-indigo-950 border border-indigo-700 rounded px-2 py-1 text-xs font-bold text-amber-300"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Night Sleep Quality */}
+              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3 space-y-1.5">
+                <span className="font-bold text-indigo-200 block text-[11px]">Đánh Giá Ngủ Đêm:</span>
+                <div className="flex space-x-1 pt-0.5">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       type="button"
                       onClick={() => handleUpdateNightLog({ nightSleepQuality: star as any })}
-                      className={`text-lg leading-none transition-transform hover:scale-125 cursor-pointer ${
+                      className={`text-base leading-none transition-transform hover:scale-125 cursor-pointer ${
                         (dayLog.nightSleepQuality || 5) >= star ? 'text-yellow-400' : 'text-indigo-700'
                       }`}
                     >
@@ -744,21 +869,188 @@ export const EasyScheduleTab: React.FC = () => {
                   ))}
                 </div>
               </div>
+            </div>
 
-              {/* 3. Save to Diary Action */}
-              <div className="bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3.5 flex items-center justify-center">
+            {/* Night Diapers & Notes */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs pt-1">
+              <div className="md:col-span-4 bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-3 flex items-center justify-around">
+                <label className="flex items-center space-x-2 cursor-pointer text-indigo-100 font-bold">
+                  <input
+                    type="checkbox"
+                    checked={dayLog.nightWetDiaper ?? true}
+                    onChange={(e) => handleUpdateNightLog({ nightWetDiaper: e.target.checked })}
+                    className="w-4 h-4 text-indigo-500 rounded cursor-pointer"
+                  />
+                  <span>💦 Có tã ướt đêm</span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer text-indigo-100 font-bold">
+                  <input
+                    type="checkbox"
+                    checked={dayLog.nightDirtyDiaper ?? false}
+                    onChange={(e) => handleUpdateNightLog({ nightDirtyDiaper: e.target.checked })}
+                    className="w-4 h-4 text-amber-500 rounded cursor-pointer"
+                  />
+                  <span>💩 Có tã dơ đêm</span>
+                </label>
+              </div>
+
+              <div className="md:col-span-5 bg-indigo-900/50 border border-indigo-800/80 rounded-xl p-2.5">
+                <input
+                  type="text"
+                  placeholder="Ghi chú chi tiết đêm (VD: Bé giật mình 2h sáng, tự ngủ lại...)"
+                  value={dayLog.nightNotes || ''}
+                  onChange={(e) => handleUpdateNightLog({ nightNotes: e.target.value })}
+                  className="w-full bg-indigo-950 border border-indigo-700 rounded px-3 py-1.5 text-xs text-indigo-100 placeholder-indigo-400/70 focus:outline-none"
+                />
+              </div>
+
+              <div className="md:col-span-3">
                 <button
                   onClick={handleSyncToDiary}
                   disabled={isSaving}
-                  className="w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-indigo-950 font-extrabold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-md flex items-center justify-center space-x-2"
+                  className="w-full h-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-indigo-950 font-extrabold rounded-xl text-xs transition-all cursor-pointer shadow-md flex items-center justify-center space-x-2"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{isSaving ? 'Đang lưu...' : 'Lưu Lịch EASY Vào Nhật Ký'}</span>
+                  <span>{isSaving ? 'Đang lưu...' : 'Lưu Vào Nhật Ký'}</span>
                 </button>
               </div>
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* Custom EASY Auto Calculator Modal */}
+      {showCustomModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-gray-100 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center space-x-2 text-indigo-900 font-black text-lg">
+                <Sliders className="w-5 h-5 text-indigo-600" />
+                <span>Tùy Chỉnh & Tự Động Tính Lịch EASY</span>
+              </div>
+              <button
+                onClick={() => setShowCustomModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Nhập thời gian thức và ngủ mong muốn. Hệ thống sẽ <strong>tự động tính toán chính xác tất cả các mốc giờ ăn, ngủ và giờ vào giấc đêm</strong> mà bạn không cần chỉnh thủ công từng cữ.
+            </p>
+
+            <div className="space-y-4 text-xs font-bold text-gray-700">
+              {/* 1. Morning Wake Time */}
+              <div className="space-y-1">
+                <label className="block text-gray-900">Giờ Dậy Sáng (Khởi động cữ 1):</label>
+                <input
+                  type="time"
+                  value={morningWake}
+                  onChange={(e) => setMorningWake(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-sm font-extrabold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              {/* 2. Number of Cycles */}
+              <div className="space-y-1">
+                <label className="block text-gray-900">Số Cữ Ban Ngày:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[3, 4, 5].map((cnt) => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setCustomCycleCount(cnt)}
+                      className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                        customCycleCount === cnt
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {cnt} cữ ngày
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Wake duration per cycle */}
+              <div className="space-y-1">
+                <label className="block text-gray-900">
+                  Thời Gian Thức Mỗi Cữ (A) - Phút:
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="30"
+                    max="360"
+                    step="15"
+                    value={customWakeMins}
+                    onChange={(e) => setCustomWakeMins(Number(e.target.value))}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-sm font-extrabold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  <span className="text-xs text-gray-500 whitespace-nowrap">({(customWakeMins / 60).toFixed(1)} tiếng)</span>
+                </div>
+              </div>
+
+              {/* 4. Sleep duration per cycle */}
+              <div className="space-y-1">
+                <label className="block text-gray-900">
+                  Thời Gian Ngủ Giấc Ngày (S) - Phút:
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="240"
+                    step="15"
+                    value={customSleepMins}
+                    onChange={(e) => setCustomSleepMins(Number(e.target.value))}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-sm font-extrabold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  <span className="text-xs text-gray-500 whitespace-nowrap">({(customSleepMins / 60).toFixed(1)} tiếng)</span>
+                </div>
+              </div>
+
+              {/* 5. Option Skip Nap 4 */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 space-y-1.5">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customSkipNap4}
+                    onChange={(e) => setCustomSkipNap4(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <span className="font-extrabold text-amber-950 text-xs">
+                    Bỏ giấc ngủ ngắn cữ cuối (Chỉ thức, không ngủ nap 4)
+                  </span>
+                </label>
+                <p className="text-[11px] text-amber-800 leading-snug pl-6 font-normal">
+                  Khi chọn mục này, cữ 4 (hoặc cữ cuối) sẽ kéo dài thời gian thức đến thẳng giờ ngủ đêm, không có giấc chợp mắt phụ.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Action Buttons */}
+            <div className="flex items-center space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCustomModal(false)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateCustomSchedule}
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <span>⚡ Áp Dụng & Tự Động Tính</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
