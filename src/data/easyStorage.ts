@@ -1,7 +1,7 @@
 import localforage from 'localforage';
 import { localDiaryApi } from './localDiaryApi';
 
-export type EasyPresetId = 'easy3' | 'easy4' | 'easy234' | 'easy56' | 'custom';
+export type EasyPresetId = 'easy3' | 'easy35' | 'easy345' | 'easy4' | 'easy234' | 'easy56' | 'custom';
 
 export interface EasyCycleConfig {
   id: number;
@@ -99,6 +99,32 @@ export const EASY_PRESETS: Record<EasyPresetId, { name: string; ageRange: string
       { id: 3, name: 'Cữ 3 (Chiều)', wakeDurationMinutes: 60, sleepDurationMinutes: 120 },
       { id: 4, name: 'Cữ 4 (Mặt trời lặn)', wakeDurationMinutes: 60, sleepDurationMinutes: 90 },
       { id: 5, name: 'Cữ phụ 5 (Nạp đêm)', wakeDurationMinutes: 45, sleepDurationMinutes: 45 },
+    ]
+  },
+  easy35: {
+    name: 'E.A.S.Y 3.5',
+    ageRange: '6 - 12 tuần (Chuyển tiếp 3 -> 3.5)',
+    desc: 'Giai đoạn chuyển tiếp 3h -> 3.5h. Mỗi cữ 3.5 tiếng (Thức 1.5 tiếng, Ngủ 2 tiếng). Giúp bé thích nghi khi giãn cữ bú.',
+    morningWake: '07:00',
+    bedtime: '19:30',
+    cycles: [
+      { id: 1, name: 'Cữ 1 (Sáng)', wakeDurationMinutes: 90, sleepDurationMinutes: 120 },
+      { id: 2, name: 'Cữ 2 (Trưa)', wakeDurationMinutes: 90, sleepDurationMinutes: 120 },
+      { id: 3, name: 'Cữ 3 (Chiều)', wakeDurationMinutes: 90, sleepDurationMinutes: 90 },
+      { id: 4, name: 'Cữ 4 (Chợp mắt phụ)', wakeDurationMinutes: 60, sleepDurationMinutes: 45 },
+    ]
+  },
+  easy345: {
+    name: 'E.A.S.Y 3h45m',
+    ageRange: '12 - 16 tuần (Chuyển tiếp 3.5 -> 4)',
+    desc: 'Giai đoạn chuyển tiếp 3.5h -> 4h. Mỗi cữ 3 tiếng 45 phút (Thức 1 tiếng 45 phút, Ngủ 2 tiếng). Tăng thời gian thức trước khi lên EASY 4 chính thức.',
+    morningWake: '07:00',
+    bedtime: '19:15',
+    cycles: [
+      { id: 1, name: 'Cữ 1 (Sáng)', wakeDurationMinutes: 105, sleepDurationMinutes: 120 },
+      { id: 2, name: 'Cữ 2 (Trưa)', wakeDurationMinutes: 105, sleepDurationMinutes: 120 },
+      { id: 3, name: 'Cữ 3 (Chiều)', wakeDurationMinutes: 105, sleepDurationMinutes: 90 },
+      { id: 4, name: 'Cữ 4 (Chợp mắt phụ)', wakeDurationMinutes: 60, sleepDurationMinutes: 30 },
     ]
   },
   easy4: {

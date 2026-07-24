@@ -81,20 +81,35 @@ export const Settings: React.FC = () => {
     try {
       let token = sessionStorage.getItem('gdrive_access_token');
       if (!user || !token) {
-        setDriveResult({ type: 'success', text: 'Đang mở đăng nhập Google cấp quyền Drive...' });
+        setDriveResult({ type: 'success', text: 'Đang kết nối tài khoản Google cấp quyền Drive...' });
         await signInWithGoogle(true);
         token = sessionStorage.getItem('gdrive_access_token');
       }
 
       if (!token) {
-        throw new Error('Chưa cấp quyền truy cập Google Drive.');
+        throw new Error('Vui lòng chọn tài khoản Google để cấp quyền lưu trữ file lên Google Drive.');
       }
 
       const backupPackage = await createFullBackupPackage();
-      const uploadedFile = await uploadBackupToDrive(token, backupPackage);
+      let uploadedFile: DriveFileInfo;
+
+      try {
+        uploadedFile = await uploadBackupToDrive(token, backupPackage);
+      } catch (uploadErr: any) {
+        if (uploadErr?.message?.includes('TOKEN_EXPIRED')) {
+          setDriveResult({ type: 'success', text: 'Phiên làm việc hết hạn, đang làm mới quyền Google Drive...' });
+          await signInWithGoogle(true);
+          token = sessionStorage.getItem('gdrive_access_token');
+          if (!token) throw new Error('Cấp quyền Google Drive chưa thành công.');
+          uploadedFile = await uploadBackupToDrive(token, backupPackage);
+        } else {
+          throw uploadErr;
+        }
+      }
+
       setDriveResult({
         type: 'success',
-        text: `✅ Sao lưu lên Google Drive thành công! File: ${uploadedFile.name}`
+        text: `✅ Sao lưu lên Google Drive thành công! File: "${uploadedFile.name}"`
       });
     } catch (err: any) {
       console.error('Drive backup failed', err);
@@ -114,16 +129,30 @@ export const Settings: React.FC = () => {
     try {
       let token = sessionStorage.getItem('gdrive_access_token');
       if (!user || !token) {
-        setDriveResult({ type: 'success', text: 'Đang mở đăng nhập Google cấp quyền Drive...' });
+        setDriveResult({ type: 'success', text: 'Đang kết nối tài khoản Google cấp quyền Drive...' });
         await signInWithGoogle(true);
         token = sessionStorage.getItem('gdrive_access_token');
       }
 
       if (!token) {
-        throw new Error('Chưa cấp quyền truy cập Google Drive.');
+        throw new Error('Vui lòng chọn tài khoản Google để cấp quyền lưu trữ file lên Google Drive.');
       }
 
-      const files = await listBackupsFromDrive(token);
+      let files: DriveFileInfo[] = [];
+      try {
+        files = await listBackupsFromDrive(token);
+      } catch (listErr: any) {
+        if (listErr?.message?.includes('TOKEN_EXPIRED')) {
+          setDriveResult({ type: 'success', text: 'Phiên làm việc hết hạn, đang làm mới quyền Google Drive...' });
+          await signInWithGoogle(true);
+          token = sessionStorage.getItem('gdrive_access_token');
+          if (!token) throw new Error('Cấp quyền Google Drive chưa thành công.');
+          files = await listBackupsFromDrive(token);
+        } else {
+          throw listErr;
+        }
+      }
+
       if (files.length === 0) {
         throw new Error('Chưa tìm thấy bản sao lưu nào trên Google Drive của bạn.');
       }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { User, onAuthStateChanged, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -18,7 +18,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Process redirect sign-in result if applicable
-    getRedirectResult(auth).catch((err) => {
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const accessToken = credential?.accessToken;
+        if (accessToken) {
+          sessionStorage.setItem('gdrive_access_token', accessToken);
+        }
+      }
+    }).catch((err) => {
       console.warn("Redirect Sign-In Result Warning:", err);
       if (err?.code === 'auth/unauthorized-domain') {
         alert('⚠️ Lỗi tên miền chưa được cấp phép trong Firebase:\n\nVui lòng vào Firebase Console > Authentication > Settings > Authorized domains và thêm tên miền Vercel của bạn (ví dụ: nuoiconpum.vercel.app).');

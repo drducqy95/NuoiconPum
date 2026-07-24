@@ -101,13 +101,32 @@ export function downloadBackupLocally(backupData: CungConBackupData): void {
 /**
  * Upload backup JSON to Google Drive
  */
+/**
+ * Upload backup JSON to Google Drive (Creates new file or updates existing file for today)
+ */
 export async function uploadBackupToDrive(
   accessToken: string,
   backupData: CungConBackupData
 ): Promise<DriveFileInfo> {
+  if (!accessToken) {
+    throw new Error('TOKEN_EXPIRED: Chưa có token đăng nhập Google Drive.');
+  }
+
   const dateStr = new Date().toISOString().split('T')[0];
   const fileName = `cung_con_backup_${dateStr}.json`;
   const fileContent = JSON.stringify(backupData, null, 2);
+
+  // Check if a backup file with this name already exists
+  let existingFileId: string | null = null;
+  try {
+    const existingList = await listBackupsFromDrive(accessToken);
+    const found = existingList.find(f => f.name === fileName);
+    if (found) {
+      existingFileId = found.id;
+    }
+  } catch (e) {
+    console.warn('Could not list existing drive files prior to upload:', e);
+  }
 
   const metadata = {
     name: fileName,
@@ -118,16 +137,24 @@ export async function uploadBackupToDrive(
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', new Blob([fileContent], { type: 'application/json' }));
 
-  const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime,size',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: form,
-    }
-  );
+  const url = existingFileId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart&fields=id,name,createdTime,size`
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime,size';
+
+  const method = existingFileId ? 'PATCH' : 'POST';
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: form,
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    sessionStorage.removeItem('gdrive_access_token');
+    throw new Error('TOKEN_EXPIRED: Phiên làm việc Google Drive đã hết hạn hoặc chưa được cấp quyền.');
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
@@ -142,6 +169,10 @@ export async function uploadBackupToDrive(
  * Fetch list of Cùng Con backup files from Google Drive
  */
 export async function listBackupsFromDrive(accessToken: string): Promise<DriveFileInfo[]> {
+  if (!accessToken) {
+    throw new Error('TOKEN_EXPIRED: Chưa có token đăng nhập Google Drive.');
+  }
+
   const query = encodeURIComponent("name contains 'cung_con_backup' and trashed = false");
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=createdTime desc&fields=files(id,name,createdTime,size)`,
@@ -152,6 +183,11 @@ export async function listBackupsFromDrive(accessToken: string): Promise<DriveFi
       },
     }
   );
+
+  if (res.status === 401 || res.status === 403) {
+    sessionStorage.removeItem('gdrive_access_token');
+    throw new Error('TOKEN_EXPIRED: Phiên làm việc Google Drive đã hết hạn hoặc chưa được cấp quyền.');
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
@@ -169,12 +205,21 @@ export async function downloadBackupFromDrive(
   accessToken: string,
   fileId: string
 ): Promise<CungConBackupData> {
+  if (!accessToken) {
+    throw new Error('TOKEN_EXPIRED: Chưa có token đăng nhập Google Drive.');
+  }
+
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
+
+  if (res.status === 401 || res.status === 403) {
+    sessionStorage.removeItem('gdrive_access_token');
+    throw new Error('TOKEN_EXPIRED: Phiên làm việc Google Drive đã hết hạn.');
+  }
 
   if (!res.ok) {
     throw new Error(`Lỗi tải dữ liệu file từ Google Drive (${res.status})`);

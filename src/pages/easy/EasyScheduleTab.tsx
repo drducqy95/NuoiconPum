@@ -172,6 +172,18 @@ export const EasyScheduleTab: React.FC = () => {
     easyStorage.saveDayLog(updatedDayLog);
   };
 
+  const handleCycleSleepEndTimeChange = (index: number, newTime: string) => {
+    if (!dayLog || !isValidTimeStr(newTime)) return;
+    const orig = dayLog.cycles[index];
+    const newCycle: EasyCycleLog = {
+      ...orig,
+      sleepEndTime: newTime,
+    };
+    const updatedDayLog = cascadeRecalculateCycles(dayLog, index, newCycle);
+    setDayLog(updatedDayLog);
+    easyStorage.saveDayLog(updatedDayLog);
+  };
+
   const handleUpdateCycle = (index: number, updatedFields: Partial<EasyCycleLog>, saveImmediate = true) => {
     if (!dayLog) return;
     const updatedCycles = [...dayLog.cycles];
@@ -452,7 +464,7 @@ export const EasyScheduleTab: React.FC = () => {
                           <input
                             type="time"
                             value={cycle.sleepEndTime}
-                            onChange={(e) => handleUpdateCycle(index, { sleepEndTime: e.target.value })}
+                            onChange={(e) => handleCycleSleepEndTimeChange(index, e.target.value)}
                             className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none"
                           />
                         </div>
