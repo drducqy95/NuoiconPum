@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    // User Entity
+    function isValidUserCreate(data) {
+      return data.keys().hasAll(['email', 'createdAt'])
+        && data.keys().size() == 2
+        && data.email is string && data.email.size() <= 256
+        && data.createdAt == request.time;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn()
+                    && isValidId(userId)
+                    && request.auth.uid == userId
+                    && isValidUserCreate(incoming());
+      // No updates to user profile in this schema
+    }
+
+    // Diary Entry Entity
+    function isValidDiaryEntryCreate(data, authUid) {
+       return data.keys().hasAll(['userId', 'date', 'title', 'content', 'images', 'createdAt', 'updatedAt'])
+        && data.userId == authUid
+        && data.date is timestamp
+        && (!('dateStr' in data) || data.dateStr is string || data.dateStr == null)
+        && data.title is string && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 50000
+        && data.images is list && data.images.size() <= 5
+        && (data.images.size() == 0 || (data.images[0] is string && data.images[0].size() <= 900000))
+        && (!('height' in data) || data.height == null || data.height is number)
+        && (!('weight' in data) || data.weight == null || data.weight is number)
+        && (!('breastMilkVolume' in data) || data.breastMilkVolume == null || data.breastMilkVolume is number)
+        && (!('formulaVolume' in data) || data.formulaVolume == null || data.formulaVolume is number)
+        && (!('formulaType' in data) || data.formulaType == null || (data.formulaType is string && data.formulaType.size() <= 500))
+        && (!('dirtyDiapers' in data) || data.dirtyDiapers == null || data.dirtyDiapers is number)
+        && (!('wetDiapers' in data) || data.wetDiapers == null || data.wetDiapers is number)
+        && (!('abnormalNotes' in data) || data.abnormalNotes == null || (data.abnormalNotes is string && data.abnormalNotes.size() <= 5000))
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidDiaryEntryUpdate(incomingData, existingData, authUid) {
+        return incomingData.userId == existingData.userId
+        && incomingData.userId == authUid
+        && existingData.createdAt == incomingData.createdAt
+        && incomingData.updatedAt == request.time
+        && incomingData.date is timestamp
+        && incomingData.title is string && incomingData.title.size() <= 200
+        && incomingData.content is string && incomingData.content.size() <= 50000
+        && incomingData.images is list && incomingData.images.size() <= 5
+        && (incomingData.images.size() == 0 || (incomingData.images[0] is string && incomingData.images[0].size() <= 900000))
+        && (!('dateStr' in incomingData) || incomingData.dateStr is string || incomingData.dateStr == null)
+        && (!('height' in incomingData) || incomingData.height == null || incomingData.height is number)
+        && (!('weight' in incomingData) || incomingData.weight == null || incomingData.weight is number)
+        && (!('breastMilkVolume' in incomingData) || incomingData.breastMilkVolume == null || incomingData.breastMilkVolume is number)
+        && (!('formulaVolume' in incomingData) || incomingData.formulaVolume == null || incomingData.formulaVolume is number)
+        && (!('formulaType' in incomingData) || incomingData.formulaType == null || (incomingData.formulaType is string && incomingData.formulaType.size() <= 500))
+        && (!('dirtyDiapers' in incomingData) || incomingData.dirtyDiapers == null || incomingData.dirtyDiapers is number)
+        && (!('wetDiapers' in incomingData) || incomingData.wetDiapers == null || incomingData.wetDiapers is number)
+        && (!('abnormalNotes' in incomingData) || incomingData.abnormalNotes == null || (incomingData.abnormalNotes is string && incomingData.abnormalNotes.size() <= 5000));
+    }
+
+    match /users/{userId}/diaryEntries/{entryId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId; // scoped by userId in path
+      allow create: if isSignedIn()
+                    && isValidId(userId)
+                    && isValidId(entryId)
+                    && request.auth.uid == userId
+                    && isValidDiaryEntryCreate(incoming(), request.auth.uid)
+                    && exists(/databases/$(database)/documents/users/$(userId));
+      allow update: if isSignedIn()
+                    && request.auth.uid == userId
+                    && isValidDiaryEntryUpdate(incoming(), existing(), request.auth.uid)
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'images', 'date', 'dateStr', 'height', 'weight', 'breastMilkVolume', 'formulaVolume', 'formulaType', 'dirtyDiapers', 'wetDiapers', 'abnormalNotes', 'updatedAt']);
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}
