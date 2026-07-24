@@ -24,22 +24,38 @@ export interface EasyCycleLog {
   sleepStartTime: string; // "08:30"
   sleepEndTime: string;   // "10:00"
 
-  // Enhanced Breastfeeding & Formula parallel tracking fields
-  feedStartTime?: string;                    // Giờ bắt đầu ti/ăn (VD: "07:05")
-  breastfeedStartTime?: string;             // Giờ bắt đầu ti mẹ
-  breastfeedDurationMinutes?: number | null; // Thời gian ti mẹ (phút)
-  breastfeedLatchingCount?: number | null;   // Số lần ti / bắt khớp
-  breastMilkVolumeMl?: number | null;        // Lượng sữa mẹ (ml)
+  // 1. Ti mẹ trực tiếp (Direct Breastfeeding)
+  directBreastfeedStartTime?: string;            // Giờ bắt đầu ti mẹ (VD: "07:05")
+  directBreastfeedDurationMinutes?: number | null; // Thời gian con ti (phút)
+  directBreastfeedRating?: 1 | 2 | 3 | 4 | 5;    // Đánh giá cữ ti (1-5 sao)
+  directBreastfeedEstimatedMilkMl?: number | null; // Ước lượng lượng sữa (ml)
 
-  formulaFeedStartTime?: string;            // Giờ bắt đầu bú công thức
-  formulaFeedDurationMinutes?: number | null;// Thời gian bú công thức (phút)
-  formulaFeedCount?: number | null;         // Số lần / cữ bú công thức
-  formulaMilkVolumeMl?: number | null;      // Lượng sữa công thức (ml)
+  // 2. Ti bình (Bottle Feeding)
+  bottleFeedStartTime?: string;                 // Giờ bắt đầu ti bình (VD: "07:30")
+  bottleMilkVolumeMl?: number | null;           // Lượng sữa ti bình (ml)
+  bottleMilkType?: 'breast' | 'formula';        // Loại sữa: Sữa mẹ / Sữa công thức
+  formulaBrandId?: string | null;                // ID dòng sữa chọn từ thư viện
+  formulaBrandName?: string | null;              // Tên/hãng sữa công thức
 
-  milkVolumeMl?: number | null; // Legacy / Calculated total ml
+  // 3. Tã số lượng cụ thể
+  wetDiaperCount?: number;                       // Số lượng cữ/tã ướt (đi tè)
+  dirtyDiaperCount?: number;                     // Số lượng cữ/tã dơ (đi ngoài)
+
+  // Legacy fields (for backwards compatibility)
+  feedStartTime?: string;
+  breastfeedStartTime?: string;
+  breastfeedDurationMinutes?: number | null;
+  breastfeedLatchingCount?: number | null;
+  breastMilkVolumeMl?: number | null;
+  formulaFeedStartTime?: string;
+  formulaFeedDurationMinutes?: number | null;
+  formulaFeedCount?: number | null;
+  formulaMilkVolumeMl?: number | null;
+  milkVolumeMl?: number | null;
   milkType?: 'breast' | 'formula' | 'mixed';
   wetDiaper?: boolean;
   dirtyDiaper?: boolean;
+
   notes?: string;
   sleptWellRating?: 1 | 2 | 3 | 4 | 5; // 1 to 5 stars
 }
@@ -270,10 +286,19 @@ export function cascadeRecalculateCycles(dayLog: EasyDayLog, updatedCycleIndex: 
 
 // Helper to get total milk volume for a single cycle
 export function getCycleTotalMilk(c: EasyCycleLog): number {
-  if (c.breastMilkVolumeMl != null || c.formulaMilkVolumeMl != null) {
-    return (c.breastMilkVolumeMl || 0) + (c.formulaMilkVolumeMl || 0);
+  let total = 0;
+  if (c.directBreastfeedEstimatedMilkMl) total += c.directBreastfeedEstimatedMilkMl;
+  if (c.bottleMilkVolumeMl) total += c.bottleMilkVolumeMl;
+
+  // Fallback to legacy fields if new fields are empty
+  if (total === 0) {
+    if (c.breastMilkVolumeMl != null || c.formulaMilkVolumeMl != null) {
+      total = (c.breastMilkVolumeMl || 0) + (c.formulaMilkVolumeMl || 0);
+    } else if (c.milkVolumeMl) {
+      total = c.milkVolumeMl;
+    }
   }
-  return c.milkVolumeMl || 0;
+  return total;
 }
 
 // Helper to calculate complete daily milk breakdown across daytime cycles & night feeds
@@ -292,15 +317,38 @@ export function getDayTotalMilk(dayLog: EasyDayLog): {
     const cycleTotal = getCycleTotalMilk(c);
     daytimeMilk += cycleTotal;
 
-    if (c.breastMilkVolumeMl) breastMilkTotal += c.breastMilkVolumeMl;
-    if (c.formulaMilkVolumeMl) formulaMilkTotal += c.formulaMilkVolumeMl;
-    if (!c.breastMilkVolumeMl && !c.formulaMilkVolumeMl && c.milkVolumeMl) {
-      if (c.milkType === 'formula') formulaMilkTotal += c.milkVolumeMl;
-      else breastMilkTotal += c.milkVolumeMl;
+    // 1. Direct Breastfeed
+    if (c.directBreastfeedEstimatedMilkMl) {
+      breastMilkTotal += c.directBreastfeedEstimatedMilkMl;
+    }
+
+    // 2. Bottle Feed
+    if (c.bottleMilkVolumeMl) {
+      if (c.bottleMilkType === 'formula') {
+        formulaMilkTotal += c.bottleMilkVolumeMl;
+      } else {
+        breastMilkTotal += c.bottleMilkVolumeMl;
+      }
+    }
+
+    // 3. Legacy fallback
+    if (!c.directBreastfeedEstimatedMilkMl && !c.bottleMilkVolumeMl) {
+      if (c.breastMilkVolumeMl) breastMilkTotal += c.breastMilkVolumeMl;
+      if (c.formulaMilkVolumeMl) formulaMilkTotal += c.formulaMilkVolumeMl;
+      if (!c.breastMilkVolumeMl && !c.formulaMilkVolumeMl && c.milkVolumeMl) {
+        if (c.milkType === 'formula') formulaMilkTotal += c.milkVolumeMl;
+        else breastMilkTotal += c.milkVolumeMl;
+      }
     }
   });
 
   const nightMilk = dayLog.nightMilkVolumeMl || 0;
+  if (dayLog.nightMilkType === 'formula') {
+    formulaMilkTotal += nightMilk;
+  } else {
+    breastMilkTotal += nightMilk;
+  }
+
   const grandTotal = daytimeMilk + nightMilk;
 
   return {
@@ -334,27 +382,51 @@ export const easyStorage = {
     let totalDirty = 0;
 
     const cycleDetailsText = dayLog.cycles.map((c) => {
-      if (c.wetDiaper) totalWet += 1;
-      if (c.dirtyDiaper) totalDirty += 1;
+      // Accumulate diapers count
+      if (c.wetDiaperCount) totalWet += c.wetDiaperCount;
+      else if (c.wetDiaper) totalWet += 1;
+
+      if (c.dirtyDiaperCount) totalDirty += c.dirtyDiaperCount;
+      else if (c.dirtyDiaper) totalDirty += 1;
 
       const cycleMilkTotal = getCycleTotalMilk(c);
       const feedParts: string[] = [];
-      const startTimeStr = c.feedStartTime || c.breastfeedStartTime || c.formulaFeedStartTime || c.eatStartTime;
-      
-      if (c.breastfeedDurationMinutes || c.breastMilkVolumeMl) {
-        feedParts.push(`Ti mẹ${c.breastfeedStartTime ? ` [${c.breastfeedStartTime}]` : ''}: ${c.breastfeedDurationMinutes ? `${c.breastfeedDurationMinutes}p` : ''}${c.breastfeedLatchingCount ? ` (${c.breastfeedLatchingCount} lần)` : ''}${c.breastMilkVolumeMl ? ` ${c.breastMilkVolumeMl}ml` : ''}`);
+
+      // Direct Breastfeed
+      if (c.directBreastfeedDurationMinutes || c.directBreastfeedEstimatedMilkMl) {
+        let text = `🤱 **Ti mẹ trực tiếp** [${c.directBreastfeedStartTime || c.eatStartTime}]`;
+        if (c.directBreastfeedDurationMinutes) text += `: ${c.directBreastfeedDurationMinutes} phút`;
+        if (c.directBreastfeedRating) text += ` (${'⭐'.repeat(c.directBreastfeedRating)})`;
+        if (c.directBreastfeedEstimatedMilkMl) text += ` ~ ${c.directBreastfeedEstimatedMilkMl}ml`;
+        feedParts.push(text);
+      } else if (c.breastfeedDurationMinutes || c.breastMilkVolumeMl) { // Legacy
+        feedParts.push(`🤱 Ti mẹ: ${c.breastfeedDurationMinutes ? `${c.breastfeedDurationMinutes}p` : ''}${c.breastMilkVolumeMl ? ` ${c.breastMilkVolumeMl}ml` : ''}`);
       }
-      if (c.formulaFeedDurationMinutes || c.formulaMilkVolumeMl) {
-        feedParts.push(`Sữa CT${c.formulaFeedStartTime ? ` [${c.formulaFeedStartTime}]` : ''}: ${c.formulaFeedDurationMinutes ? `${c.formulaFeedDurationMinutes}p` : ''}${c.formulaFeedCount ? ` (${c.formulaFeedCount} lần)` : ''}${c.formulaMilkVolumeMl ? ` ${c.formulaMilkVolumeMl}ml` : ''}`);
+
+      // Bottle Feed
+      if (c.bottleMilkVolumeMl) {
+        let text = `🍼 **Ti bình (${c.bottleMilkType === 'formula' ? 'Sữa công thức' : 'Sữa mẹ'})** [${c.bottleFeedStartTime || c.eatStartTime}]: ${c.bottleMilkVolumeMl}ml`;
+        if (c.bottleMilkType === 'formula' && c.formulaBrandName) text += ` (${c.formulaBrandName})`;
+        feedParts.push(text);
+      } else if (c.formulaMilkVolumeMl) { // Legacy
+        feedParts.push(`🍼 Sữa CT: ${c.formulaMilkVolumeMl}ml`);
+      } else if (c.milkVolumeMl) {
+        feedParts.push(`🍼 Sữa: ${c.milkVolumeMl}ml`);
       }
-      if (!c.breastMilkVolumeMl && !c.formulaMilkVolumeMl && c.milkVolumeMl) feedParts.push(`Sữa: ${c.milkVolumeMl}ml`);
 
       const feedSummary = feedParts.length > 0 
-        ? `\n  • Bắt đầu: ${startTimeStr} | ${feedParts.join(' | ')} → **Tổng cữ: ${cycleMilkTotal}ml**` 
+        ? `\n  • ${feedParts.join('\n  • ')} → **Tổng cữ: ${cycleMilkTotal}ml**` 
         : (cycleMilkTotal > 0 ? ` → **Tổng cữ: ${cycleMilkTotal}ml**` : '');
 
+      const diaperTextParts: string[] = [];
+      const wetCount = c.wetDiaperCount ?? (c.wetDiaper ? 1 : 0);
+      const dirtyCount = c.dirtyDiaperCount ?? (c.dirtyDiaper ? 1 : 0);
+      if (wetCount > 0) diaperTextParts.push(`💦 Tã ướt: ${wetCount}`);
+      if (dirtyCount > 0) diaperTextParts.push(`💩 Tã dơ: ${dirtyCount}`);
+      const diaperSummary = diaperTextParts.length > 0 ? ` | ${diaperTextParts.join(', ')}` : '';
+
       return `🔹 **${c.cycleName}** (${c.eatStartTime} - ${c.sleepEndTime})
-- 🍼 **Ăn & Chơi:** ${c.eatStartTime} - ${c.eatEndTime}${feedSummary}
+- 🍼 **Ăn & Chơi:** ${c.eatStartTime} - ${c.eatEndTime}${feedSummary}${diaperSummary}
 - 😴 **Giấc ngủ:** ${c.sleepStartTime} - ${c.sleepEndTime} ${c.sleptWellRating ? `(Đánh giá ngủ: ${'⭐'.repeat(c.sleptWellRating)})` : ''}
 ${c.notes ? `- 📝 *Ghi chú:* ${c.notes}` : ''}`;
     }).join('\n\n');
@@ -372,6 +444,7 @@ ${dayLog.nightNotes ? `- 📝 *Ghi chú cữ đêm:* ${dayLog.nightNotes}` : ''}
     const title = `Lịch EASY ${preset.name} - Ngày ${dayLog.dateStr}`;
     const content = `⏰ **Giờ thức dậy buổi sáng:** ${dayLog.morningWakeTime}
 🍼 **TỔNG LƯỢNG SỮA TRONG NGÀY:** **${milkStats.grandTotal} ml** (Sữa mẹ: ${milkStats.breastMilkTotal}ml, Sữa CT: ${milkStats.formulaMilkTotal}ml, Sữa đêm: ${milkStats.nightMilk}ml)
+👶 **TỔNG TÃ TRONG NGÀY:** **💦 ${totalWet} cữ ướt**, **💩 ${totalDirty} cữ dơ**
 
 📅 **Lịch trình EASY (${preset.name}):**
 

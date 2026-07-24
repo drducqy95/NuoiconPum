@@ -1,101 +1,789 @@
+export interface NutritionAndWeaningInfo {
+  milkAndCalories: string;       // Nhu cầu sữa & Năng lượng
+  mealsCount: string;            // Số bữa ăn dặm & sữa trong ngày
+  essentialNutrients: string[];  // Các nhóm dinh dưỡng quan trọng
+  recommendedFoods: string[];    // Danh sách THỰC PHẨM NÊN ĂN
+  foodsToAvoid: string[];        // Danh sách THỰC PHẨM CẦN TRÁNH
+  weaningTips: string;           // Mẹo ăn dặm chuẩn khoa học
+}
+
+export interface SkillAndGameInfo {
+  targetSkills: string[];        // Các kỹ năng trọng tâm cần rèn luyện
+  recommendedGames: Array<{      // Danh sách các trò chơi tương tác
+    gameTitle: string;
+    howToPlay: string;
+    benefit: string;
+  }>;
+  parentTips: string;            // Lời khuyên cho bố mẹ khi chơi cùng bé
+}
+
 export interface DevelopmentStage {
   id: string;
   title: string;
   ageRange: string;
   milestones: string[];
+  nutritionAndWeaning?: NutritionAndWeaningInfo;
+  skillsAndGames?: SkillAndGameInfo;
   commonIssues: { title: string; description: string; solution: string }[];
 }
 
 export const stagesData: DevelopmentStage[] = [
+  // THÁNG 1
   {
-    id: 'newborn',
-    title: 'Trẻ sơ sinh',
+    id: 'month_1',
+    title: 'Tháng thứ 1 (0 - 1 tháng)',
     ageRange: '0 - 1 tháng tuổi',
     milestones: [
-      'Ngủ rất nhiều, từ 16-20 tiếng mỗi ngày.',
-      'Phản xạ bú mút mạnh mẽ.',
-      'Mắt bắt đầu nhìn theo vật tĩnh ở khoảng cách gần.',
-      'Giật mình khi có tiếng động lớn.'
+      'Ngủ 16 - 20 tiếng/ngày, thức dậy mỗi 2-3 tiếng để bú.',
+      'Phản xạ bú mút mạnh mẽ, phản xạ nắm chặt tay (Moro).',
+      'Mắt nhìn theo gương mặt bố mẹ ở cự ly gần 20-30cm.',
+      'Cổ còn yếu, chưa thể tự nâng đầu khi nằm sấp.'
     ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Bú mẹ hoàn toàn theo nhu cầu (8-12 cữ/ngày) hoặc 60-90ml sữa công thức/cữ.',
+      mealsCount: '100% Sữa (Bú mẹ hoặc Sữa công thức). TUYỆT ĐỐI CHƯA ĂN DẶM.',
+      essentialNutrients: [
+        'Dưỡng chất hoàn hảo từ Sữa mẹ (Kháng thể IgA, Lactoferrin, DHA, ARA).',
+        'Bổ sung Vitamin D3 hàng ngày (400 IU/ngày) từ sau sinh 3 ngày.'
+      ],
+      recommendedFoods: ['Sữa mẹ hoàn toàn (thức ăn tốt nhất)', 'Sữa công thức số 1 (nếu thiếu sữa mẹ)'],
+      foodsToAvoid: ['Nước lọc (không dặm nước cho trẻ <6 tháng)', 'Bột, cháo, nước trái cây, mật ong'],
+      weaningTips: 'Trẻ dưới 6 tháng hệ tiêu hóa chưa có enzyme amylase phân giải tinh bột, TUYỆT ĐỐI KHÔNG cho ăn dặm sớm.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Kích thích thị giác đen-trắng', 'Phát triển thính giác giọng nói mẹ', 'Thắt chặt tình cảm Skin-to-skin'],
+      recommendedGames: [
+        {
+          gameTitle: '👁️ Tráo thẻ tương phản Đen - Trắng',
+          howToPlay: 'Cầm thẻ tranh đen-trắng di chuyển chậm rãi qua lại trước mắt bé ở khoảng cách 25cm.',
+          benefit: 'Kích thích dây thần kinh thị giác và khả năng tập trung chú ý ban đầu.'
+        },
+        {
+          gameTitle: '🗣️ Trò chuyện rủ rỉ Skin-to-skin',
+          howToPlay: 'Đặt bé nằm trần trên ngực mẹ, ghé sát tai nói chuyện dịu dàng và hát ru.',
+          benefit: 'Tạo cảm giác an toàn, giúp ổn định nhịp tim và nhịp thở cho bé.'
+        }
+      ],
+      parentTips: 'Tháng đầu tiên trò chơi tốt nhất chính là nụ cười, ôm ấp và giọng nói ấm áp của bố mẹ.'
+    },
     commonIssues: [
       {
-        title: 'Khóc dạ đề',
-        description: 'Bé khóc dai dẳng vào buổi tối mà không rõ nguyên nhân.',
-        solution: 'Bế ấp, sử dụng âm thanh trắng (white noise), massage bụng nhẹ nhàng theo chiều kim đồng hồ.'
+        title: 'Khóc dạ đề (Colic)',
+        description: 'Bé khóc dồn dập vào chiều tối mà không rõ nguyên nhân.',
+        solution: 'Bế ấp kiểu Kangaroo, quấn khăn mềm, dùng tiếng ồn trắng và massage bụng nhẹ nhàng.'
       },
       {
         title: 'Trớ sữa sinh lý',
-        description: 'Bé hay ọc sữa sau khi bú xong.',
-        solution: 'Vỗ ợ hơi kỹ sau khi bú, bế đầu cao khoảng 15-20 phút rồi mới đặt nằm.'
+        description: 'Bé bị ọc sữa sau khi bú xong.',
+        solution: 'Vỗ ợ hơi kỹ 5-10 phút sau bú, giữ bé đầu cao 15-20 phút rồi mới đặt nằm.'
       }
     ]
   },
+
+  // THÁNG 2
   {
-    id: 'infant-1-3m',
-    title: 'Giai đoạn nhũ nhi đầu',
-    ageRange: '1 - 3 tháng tuổi',
+    id: 'month_2',
+    title: 'Tháng thứ 2 (1 - 2 tháng)',
+    ageRange: '1 - 2 tháng tuổi',
     milestones: [
-      'Bắt đầu hóng chuyện, mỉm cười với người chăm sóc.',
-      'Cứng cáp cổ hơn, có thể giữ đầu thẳng một lúc khi nằm sấp.',
-      'Bắt đầu cầm nắm đồ vật đặt vào tay.',
-      'Nhìn theo chuyển động của đồ vật xa hơn.'
+      'Biết mỉm cười xã hội (Social smile) khi trò chuyện.',
+      'Nâng cổ 45 độ khi tập nằm sấp (Tummy time).',
+      'Phát ra âm thanh hóng chuyện ê a ("ơ", "a").',
+      'Mắt theo dõi đồ vật di chuyển ngang 180 độ.'
     ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 120-150ml/kg cân nặng/ngày (khoảng 600-800ml/ngày).',
+      mealsCount: '6-8 cữ sữa/ngày. Chưa ăn dặm.',
+      essentialNutrients: ['Bú mẹ/Sữa công thức + Vitamin D3 (400 IU/ngày).'],
+      recommendedFoods: ['Sữa mẹ', 'Sữa công thức chuẩn nhi khoa'],
+      foodsToAvoid: ['Nước lọc, nước đường, trà thảo dược', 'Thức ăn dặm dưới mọi hình thức'],
+      weaningTips: 'Tiếp tục duy trì bú mẹ hoàn toàn để tăng cường miễn dịch.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Cứng cáp cơ cổ và lưng', 'Phản xạ mỉm cười đáp lại', 'Dõi mắt 180 độ'],
+      recommendedGames: [
+        {
+          gameTitle: '🛋️ Tập nằm sấp Tummy Time cùng đồ chơi',
+          howToPlay: 'Đặt bé nằm sấp trên thảm mềm 2-3 phút, đặt đồ chơi màu sắc phía trước để bé ngẩng đầu nhìn.',
+          benefit: 'Tăng cường sức mạnh cơ cổ, vai, lưng chuẩn bị cho kỹ năng lẫy.'
+        },
+        {
+          gameTitle: '🪞 Nụ cười trước gương',
+          howToPlay: 'Bế bé đứng trước gương, mỉm cười và chỉ vào bóng bé trong gương.',
+          benefit: 'Phát triển nhận thức thị giác và cảm xúc mỉm cười xã hội.'
+        }
+      ],
+      parentTips: 'Hãy nhại lại các âm thanh "ê", "a" của bé để khuyến khích bé tiếp tục giao tiếp ngôn ngữ.'
+    },
     commonIssues: [
       {
-        title: 'Táo bón hoặc giãn ruột sinh lý',
-        description: 'Bé có thể nhiều ngày không đi ngoài (nhất là bé bú mẹ hoàn toàn).',
-        solution: 'Nếu bé vẫn xì hơi, ăn ngủ bình thường thì có thể là giãn ruột sinh lý. Massage bụng, tập động tác đạp xe cho bé.'
-      },
-      {
-        title: 'Ngủ ngày thức đêm (Lẫn lộn ngày đêm)',
-        description: 'Bé ngủ nhiều vào ban ngày và thức chơi, quấy khóc ban đêm.',
-        solution: 'Cho bé tiếp xúc ánh sáng tự nhiên ban ngày, phòng ngủ ban đêm cần tối và yên tĩnh, hạn chế tương tác quá mức vào ban đêm.'
+        title: 'Giãn ruột sinh lý',
+        description: 'Bé bú mẹ 5-10 ngày mới đi ngoài 1 lần nhưng phân vẫn mềm dẻo.',
+        solution: 'Nếu bé vẫn bú tốt, bụng mềm thì hoàn toàn bình thường. Massage bụng đạp xe.'
       }
     ]
   },
+
+  // THÁNG 3
   {
-    id: 'infant-3-6m',
-    title: 'Khám phá thế giới',
-    ageRange: '3 - 6 tháng tuổi',
+    id: 'month_3',
+    title: 'Tháng thứ 3 (2 - 3 tháng)',
+    ageRange: '2 - 3 tháng tuổi',
     milestones: [
-      'Biết lật (lẫy) từ ngửa sang sấp và ngược lại.',
-      'Cười thành tiếng, phản ứng rõ rệt khi được gọi tên.',
-      'Có xu hướng cho mọi thứ vào miệng để khám phá.',
-      'Ngủ ít hơn vào ban ngày, có thể ngủ xuyên đêm dài hơn.'
+      'Tập lẫy/lật từ ngửa sang nghiêng.',
+      'Giữ đầu thẳng vững vàng khi được bế dựng.',
+      'Chới tay mở rộng bàn tay với đồ chơi treo.',
+      'Biết quay đầu về phía có tiếng động phát ra.'
     ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 700-900ml/ngày (khoảng 120-160ml/cữ).',
+      mealsCount: '5-6 cữ sữa/ngày.',
+      essentialNutrients: ['Sữa mẹ / Sữa công thức + Vitamin D3.'],
+      recommendedFoods: ['Sữa mẹ / Sữa công thức chuẩn'],
+      foodsToAvoid: ['Bột ăn dặm, nước cháo, nước hoa quả'],
+      weaningTips: 'Quan sát dấu hiệu sẵn sàng của bé (cổ cứng vững), nhưng vẫn chờ đến 5.5 - 6 tháng mới cho ăn dặm.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Lẫy lật thân mình', 'Chới tay cầm nắm', 'Định vị nguồn âm thanh'],
+      recommendedGames: [
+        {
+          gameTitle: '🔔 Xúc xắc lục lạc sắc màu',
+          howToPlay: 'Lắc nhẹ chiếc lục lạc bên trái rồi bên phải cách tai bé 30cm để bé quay đầu tìm.',
+          benefit: 'Rèn luyện định vị âm thanh thính giác và sự kết hợp cổ-mắt.'
+        },
+        {
+          gameTitle: '🧸 Thảm nhạc xúc giác',
+          howToPlay: 'Cho bé nằm trên thảm chơi có treo các đồ chơi mềm để bé tập chới tay bắt lấy.',
+          benefit: 'Phát triển kết hợp tay-mắt và cơ cánh tay.'
+        }
+      ],
+      parentTips: 'Giai đoạn này bé bắt đầu muốn lẫy, luôn giám sát bé khi nằm trên giường cao.'
+    },
     commonIssues: [
       {
-        title: 'Sốt mọc răng',
-        description: 'Bé chảy dãi nhiều, cáu gắt, sốt nhẹ, hay nhai cắn đồ vật.',
-        solution: 'Cho bé gặm nướu chuyên dụng (có thể làm mát), lau dãi thường xuyên. Sốt trên 38.5°C cần tham khảo ý kiến bác sĩ để dùng thuốc.'
-      },
-      {
-        title: 'Khủng hoảng ngủ (Sleep regression 4 tháng)',
-        description: 'Bé đột nhiên khó ngủ, hay thức giấc giữa đêm dù trước đó ngủ ngoan.',
-        solution: 'Duy trì trình tự ngủ (bedtime routine) ổn định, kiên nhẫn, hỗ trợ bé thư giãn không tạo thói quen phụ thuộc xấu.'
+        title: 'Lẫn lộn ngày đêm',
+        description: 'Bé thức quấy về đêm, ngủ nhiều ban ngày.',
+        solution: 'Giữ phòng ban ngày tràn ngập ánh sáng. Ban đêm giữ phòng tối hoàn toàn và yên tĩnh.'
       }
     ]
   },
+
+  // THÁNG 4
   {
-    id: 'infant-6-12m',
-    title: 'Giai đoạn hiếu động',
-    ageRange: '6 - 12 tháng tuổi',
+    id: 'month_4',
+    title: 'Tháng thứ 4 (3 - 4 tháng)',
+    ageRange: '3 - 4 tháng tuổi',
     milestones: [
-      'Tập ăn dặm, làm quen nhiều hương vị mới.',
-      'Biết ngồi vững không cần hỗ trợ, biết trườn, bò.',
-      'Bắt đầu bám vịn để đứng lên, có thể bước những bước đi đầu tiên.',
-      'Biết vẫy tay chào (bye-bye), nói những từ đơn giản như "ba", "ma".'
+      'Lẫy thành thạo từ ngửa sang sấp.',
+      'Đẩy ngực lên cao bằng 2 cẳng tay khi nằm sấp.',
+      'Cười giòn giã thành tiếng to.',
+      'Cho mọi đồ chơi vào miệng nhai.'
     ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 800-1000ml/ngày (khoảng 150-180ml/cữ).',
+      mealsCount: '5 cữ sữa/ngày.',
+      essentialNutrients: ['Sữa mẹ / Sữa công thức + Vitamin D3 (400 IU/ngày).'],
+      recommendedFoods: ['Sữa mẹ / Sữa công thức'],
+      foodsToAvoid: ['Thức ăn thô, cháo, nước trái cây'],
+      weaningTips: 'Không ép bé ăn dặm sớm dù bé có nhìn người lớn ăn chép miệng.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Cơ tay ngực chắc khỏe', 'Tập phản xạ nhai gặm', 'Cười tương tác'],
+      recommendedGames: [
+        {
+          gameTitle: '🪡 Kéo cưa lừa xẻ nhịp nhàng',
+          howToPlay: 'Nắm nhẹ hai tay bé đẩy ra kéo vào nhịp nhàng theo câu hát "Kéo cưa lừa xẻ...".',
+          benefit: 'Tăng cường sức bền cơ cánh tay và nhịp điệu vận động.'
+        },
+        {
+          gameTitle: '🦷 Khám phá gặm nướu silicon',
+          howToPlay: 'Đưa cho bé các gặm nướu hình khối có vân nổi khác nhau.',
+          benefit: 'Kích thích giác quan vòm miệng và xoa dịu nướu sắp mọc răng.'
+        }
+      ],
+      parentTips: 'Mọi thứ bé lấy được đều sẽ đưa vào miệng, hãy đảm bảo đồ chơi sạch sẽ và không có chi tiết nhỏ gây hóc.'
+    },
     commonIssues: [
       {
-        title: 'Biếng ăn sinh lý hoặc do mọc răng',
-        description: 'Bé từ chối ăn dặm hoặc bú ít đi trong vài ngày.',
-        solution: 'Không ép bé ăn. Thay đổi đa dạng món, làm lỏng thức ăn nếu bé mọc răng. Đợi qua giai đoạn bé sẽ ăn lại bình thường.'
-      },
+        title: 'Khủng hoảng ngủ 4 tháng (4-month Sleep Regression)',
+        description: 'Bé đột nhiên thức giấc nhiều lần trong đêm.',
+        solution: 'Duy trì trình tự ngủ ổn định. Hạn chế thói quen bế ru quá mức.'
+      }
+    ]
+  },
+
+  // THÁNG 5
+  {
+    id: 'month_5',
+    title: 'Tháng thứ 5 (4 - 5 tháng)',
+    ageRange: '4 - 5 tháng tuổi',
+    milestones: [
+      'Biết xoay người lật sấp rồi lật ngửa lại.',
+      'Chuyền đồ vật từ tay này sang tay kia.',
+      'Phản ứng rõ rệt khi nghe ai đó gọi tên mình.',
+      'Mầm răng cửa đầu tiên làm nướu sưng nhẹ, chảy dãi.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 800-1000ml/ngày.',
+      mealsCount: '5 cữ sữa/ngày.',
+      essentialNutrients: ['Sữa mẹ / Sữa công thức + Vitamin D3.'],
+      recommendedFoods: ['Sữa mẹ / Sữa công thức'],
+      foodsToAvoid: ['Gia vị (muối, đường, hạt nêm), mật ong'],
+      weaningTips: 'Tìm hiểu các phương pháp ăn dặm (Ăn dặm truyền thống, Ăn dặm kiểu Nhật, Ăn dặm tự chỉ huy BLW) để chuẩn bị cho tháng sau.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Chuyền tay linh hoạt', 'Phản xạ gọi tên', 'Cơ bụng khỏe xoay lật'],
+      recommendedGames: [
+        {
+          gameTitle: '⚽ Chuyền bóng silicon mềm',
+          howToPlay: 'Đưa quả bóng nhỏ mềm vào tay phải bé, khuyến khích bé chuyền sang tay trái.',
+          benefit: 'Phát triển sự phối hợp liên kết giữa hai bán cầu não.'
+        },
+        {
+          gameTitle: '🗣️ Trò chơi Trố mắt gọi tên',
+          howToPlay: 'Đứng phía sau bé gọi tên bé thật rõ ràng, khi bé quay lại thì làm mặt hề vui nhộn.',
+          benefit: 'Rèn luyện phản xạ nhận biết bản dạng tên gọi của mình.'
+        }
+      ],
+      parentTips: 'Chuẩn bị sẵn nghế ăn dặm và yếm ăn để chuẩn bị bước sang mốc ăn dặm tháng thứ 6.'
+    },
+    commonIssues: [
       {
-        title: 'Lo âu xa cách (Separation anxiety)',
-        description: 'Bé bám mẹ/người chăm sóc chính mãnh liệt, khóc lớn khi bị để lại một mình.',
-        solution: 'Chơi trò ú òa (Peek-a-boo) để bé hiểu đồ vật/người biến mất rồi sẽ trở lại. Luôn chào tạm biệt rõ ràng trước khi đi, không trốn bé.'
+        title: 'Chảy dãi & Sốt mọc răng',
+        description: 'Bé ngứa nướu, hay gặm đồ vật, sốt nhẹ 37.8°C.',
+        solution: 'Cho gặm nướu silicon mềm làm mát, lau sạch dãi vùng cằm.'
+      }
+    ]
+  },
+
+  // THÁNG 6
+  {
+    id: 'month_6',
+    title: 'Tháng thứ 6 (5 - 6 tháng) 🥣 BẮT ĐẦU ĂN DẶM',
+    ageRange: '5 - 6 tháng tuổi',
+    milestones: [
+      'CHÍNH THỨC BẮT ĐẦU HÀNH TRÌNH ĂN DẶM.',
+      'Biết trườn bằng bụng tiến về phía trước.',
+      'Bắt đầu ngồi có sự hỗ trợ của gối tựa.',
+      'Phát âm âm đôi ("ba-ba", "ma-ma").'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 700-900ml/ngày. Năng lượng ăn dặm: 100-150 kcal/ngày.',
+      mealsCount: 'Sữa: 4-5 cữ/ngày + Ăn dặm: 1 bữa nếm thử/ngày (vào buổi sáng).',
+      essentialNutrients: [
+        'Tinh bột (Glucid): Cháo rây tỷ lệ 1:10 mịn mịn nhẹ.',
+        'Vitamin & Khoáng chất: Rau củ nghiền mịn (bí đỏ, cà rốt, khoai lang, su su, bơ).',
+        'Sắt (Iron): Bổ sung thực phẩm giàu sắt.'
+      ],
+      recommendedFoods: [
+        '🍚 Bột gạo rây / Cháo rây 1:10 mịn như kem',
+        '🥕 Bí đỏ, cà rốt, khoai lang, khoai tây hấp chín rây mịn',
+        '🥑 Bơ chín, chuối nghiền, táo hấp rây',
+        '🫒 1/2 thìa cà phê Dầu ăn em bé (dầu ô liu, dầu mỡ lợn) cho vào cháo'
+      ],
+      foodsToAvoid: [
+        '⛔ GIA VỊ (Muối, nước mắm, đường, hạt nêm)',
+        '⛔ MẬT ONG',
+        '⛔ Hải sản cứng (Tôm, Cua, Mực)',
+        '⛔ Sữa tươi bò tươi'
+      ],
+      weaningTips: 'Nguyên tắc VÀNG: Ăn từ LỎNG đến ĐẶC, từ ÍT đến NHIỀU, thử từng món mới 2-3 ngày (Rule of 3 days).'
+    },
+    skillsAndGames: {
+      targetSkills: ['Trườn bụng bò tiến', 'Tập ngồi ghế ăn dặm', 'Khám phá sách vải cảm giác'],
+      recommendedGames: [
+        {
+          gameTitle: '🏎️ Đua trườn lấy xe đồ chơi',
+          howToPlay: 'Đặt chiếc xe đồ chơi màu đỏ tươi cách tầm tay bé 50cm, động viên bé trườn bụng tới lấy.',
+          benefit: 'Kích thích cơ đùi, cơ bụng và ý chí chinh phục mục tiêu.'
+        },
+        {
+          gameTitle: '📖 Đọc sách vải Sờ & Cảm nhận (Touch & Feel)',
+          howToPlay: 'Cho bé sờ các bề mặt vải lông mịn, vải sần, da nhẵn trên trang sách tranh.',
+          benefit: 'Phát triển xúc giác tinh tế và niềm yêu thích sách từ bé.'
+        }
+      ],
+      parentTips: 'Khi ăn dặm, hãy cho bé ngồi ghế ăn đàng hoàng, tuyệt đối không bật tivi hay bế đi ăn rong.'
+    },
+    commonIssues: [
+      {
+        title: 'Từ chối nhè thức ăn dặm',
+        description: 'Bé lấy lưỡi đẩy thức ăn ra ngoài.',
+        solution: 'Do phản xạ đẩy lưỡi sinh lý chưa mất hẳn. Kiên nhẫn thử từng thìa nhỏ, không ép bé ăn.'
+      }
+    ]
+  },
+
+  // THÁNG 7
+  {
+    id: 'month_7',
+    title: 'Tháng thứ 7 (6 - 7 tháng)',
+    ageRange: '6 - 7 tháng tuổi',
+    milestones: [
+      'Ngồi vững vàng không cần trợ giúp.',
+      'Bò bằng 4 chi (tay và đầu gối).',
+      'Mọc 2-4 răng cửa bên dưới.',
+      'Sợ người lạ, bám mẹ chặt chẽ.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 600-800ml/ngày. Năng lượng ăn dặm: 200 kcal/ngày.',
+      mealsCount: 'Sữa: 4 cữ/ngày + Ăn dặm: 2 bữa/ngày (Sáng & Chiều).',
+      essentialNutrients: [
+        'Đạm (Protein): Thịt lợn nạc, lòng đỏ trứng, ức gà, đạm thực vật.',
+        'Chất béo (Lipid): Dầu ô liu, dầu cá hồi, mỡ lợn sạch.',
+        'Chất xơ: Rau mồng tơi, rau dền, cải ngọt, bông cải xanh.'
+      ],
+      recommendedFoods: [
+        '🥩 Thịt lợn thăn nạc, ức gà xay nhuyễn rây mịn',
+        '🥚 Lòng đỏ trứng gà (chỉ lòng đỏ)',
+        '🥦 Rau mồng tơi, rau dền, bông cải xanh',
+        '🥣 Cháo đặc hơn tỷ lệ 1:7'
+      ],
+      foodsToAvoid: ['Lòng trắng trứng, muối, đường, nước hầm xương'],
+      weaningTips: 'Mỗi bát cháo BẮT BUỘC có đủ 4 nhóm chất: Tinh bột + Đạm + Rau xanh + 1 thìa Dầu ăn.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Tập ngồi tự do', 'Tập bò bằng 4 chi', 'Phản xạ tìm đồ vật ẩn giấu'],
+      recommendedGames: [
+        {
+          gameTitle: '🙈 Ú òa giấu mặt với khăn xô (Peek-a-boo)',
+          howToPlay: 'Lấy chiếc khăn xô che mặt mẹ rồi mở ra nói "Ú òa!", hoặc che lên mặt bé để bé tự dùng tay giật khăn ra.',
+          benefit: 'Dạy bé khái niệm "Sự tồn tại của vật thể" (Object Permanence).'
+        },
+        {
+          gameTitle: '📦 Thả khối gỗ vào hộp mở',
+          howToPlay: 'Hướng dẫn bé cầm khối gỗ thả vào chiếc hộp nhựa mở nắp và lấy ra.',
+          benefit: 'Phát triển kết hợp tay-mắt và tư duy nhân quả.'
+        }
+      ],
+      parentTips: 'Bé đã bò rất nhanh, hãy dọn dẹp sạch sàn nhà và ổ cắm điện nguy hiểm.'
+    },
+    commonIssues: [
+      {
+        title: 'Táo bón khi ăn dặm',
+        description: 'Phân bé bị khô cứng do chuyển sang ăn đạm.',
+        solution: 'Tăng rau xanh lá, cho uống thêm nước lọc (50-100ml/ngày), massage bụng.'
+      }
+    ]
+  },
+
+  // THÁNG 8
+  {
+    id: 'month_8',
+    title: 'Tháng thứ 8 (7 - 8 tháng)',
+    ageRange: '7 - 8 tháng tuổi',
+    milestones: [
+      'Bám vịn thành giường/ghế đứng dậy.',
+      'Hiểu từ "Không!", vẫy tay "Bye-bye".',
+      'Thích chơi trò ú òa (Peek-a-boo).',
+      'Mọc 4 răng cửa (2 trên, 2 dưới).'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 600-700ml/ngày. Năng lượng ăn dặm: 250 kcal/ngày.',
+      mealsCount: 'Sữa: 3-4 cữ/ngày + Ăn dặm: 2 bữa chính/ngày + 1 phụ.',
+      essentialNutrients: ['Sắt & B12: Thịt bò bằm.', 'Omega-3: Cá lóc, cá hồi.'],
+      recommendedFoods: [
+        '🥩 Thịt bò nạc băm nhuyễn, thịt lợn, ức gà',
+        '🐟 Cá đồng (cá lóc, cá chép gỡ xương), Cá hồi',
+        '🧀 Phô mai tươi tách muối, Sữa chua em bé',
+        '🥣 Cháo hạt vỡ (tỷ lệ 1:5)'
+      ],
+      foodsToAvoid: ['Gia vị mặn, mật ong, hạt nguyên hạt'],
+      weaningTips: 'Tăng độ thô của cháo (cháo vỡ hạt) để kích thích bé phản xạ nhai bằng nướu.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Bám vịn đứng dậy', 'Cử chỉ giao tiếp vẫy tay', 'Gõ gõ theo nhịp âm nhạc'],
+      recommendedGames: [
+        {
+          gameTitle: '👏 Vỗ tay Ba-la-bông & Vẫy tay Bye-bye',
+          howToPlay: 'Hát bài vỗ tay và nắm hai tay bé vỗ nhịp nhàng, chào tạm biệt khi có người đi ra.',
+          benefit: 'Phát triển kỹ năng bắt chước cừ chỉ ngôn ngữ cơ thể.'
+        },
+        {
+          gameTitle: '🥁 Nhạc công nhí gõ nồi xoong',
+          howToPlay: 'Đưa cho bé 2 chiếc thìa gỗ và 1 chiếc nồi inox để bé gõ tạo âm thanh vui tai.',
+          benefit: 'Giải phóng năng lượng vận động tinh và thính giác âm nhạc.'
+        }
+      ],
+      parentTips: 'Khuyến khích bé bám vịn đứng dậy bằng cách đặt đồ chơi lên mặt bàn cao.'
+    },
+    commonIssues: [
+      {
+        title: 'Lo âu xa cách',
+        description: 'Bé khóc thét khi mẹ rời mắt.',
+        solution: 'Chơi trò trốn tìm, luôn chào tạm biệt bé trước khi đi.'
+      }
+    ]
+  },
+
+  // THÁNG 9
+  {
+    id: 'month_9',
+    title: 'Tháng thứ 9 (8 - 9 tháng) 🍌 ĂN DẶM BỐC NHÓN (BLW)',
+    ageRange: '8 - 9 tháng tuổi',
+    milestones: [
+      'Tập bốc nhón (dùng ngón trỏ và ngón cái nhặt đồ vật nhỏ).',
+      'Bò bằng 4 chi rất nhanh.',
+      'Phát âm từ đơn có nghĩa ("Mẹ", "Ba").',
+      'Hiểu và bắt chước hành động của người lớn.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 500-700ml/ngày. Năng lượng ăn dặm: 300 kcal/ngày.',
+      mealsCount: 'Sữa: 3-4 cữ/ngày + Ăn dặm: 2-3 bữa chính/ngày.',
+      essentialNutrients: ['Kẽm & Sắt: Thịt bò, tôm đồng, lòng đỏ trứng.', 'Chất xơ thô.'],
+      recommendedFoods: [
+        '🍤 Tôm đồng băm nhỏ, Cua đồng, Cá lóc, Thịt bò',
+        '🥕 Cà rốt, su su, bông cải xanh luộc mềm cắt thanh dài cho bé tập bốc nhón (BLW)',
+        '🍌 Chuối, thanh long, bơ cắt miếng vuông nhỏ',
+        '🥣 Cháo nguyên hạt nấu mềm (tỷ lệ 1:4)'
+      ],
+      foodsToAvoid: ['Gia vị mặn, mật ong, nho nguyên quả'],
+      weaningTips: 'Tập cho bé ăn bốc nhón (Finger Food) để rèn luyện sự khéo léo của đôi tay.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Kỹ năng bốc nhón 2 ngón tay', 'Bò linh hoạt chướng ngại vật', 'Bắt chước âm thanh từ đơn'],
+      recommendedGames: [
+        {
+          gameTitle: '👌 Bốc nhón thanh rau củ mềm (Finger Food)',
+          howToPlay: 'Cắt cà rốt luộc mềm thành dạng thanh dài đặt trước mặt bé để bé dùng ngón trỏ và cái kiễng nhặt ăn.',
+          benefit: 'Rèn luyện hoàn hảo vận động tinh ngón tay và tính tự lập khi ăn.'
+        },
+        {
+          gameTitle: '⛰️ Leo núi gối bông trong phòng',
+          howToPlay: 'Xếp các chiếc gối gòn mềm trên sàn tạo thành con đường gập ghềnh cho bé bò vượt qua.',
+          benefit: 'Tăng cường sự dẻo dai toàn thân và khả năng thăng bằng.'
+        }
+      ],
+      parentTips: 'Đừng lo bé bị bẩn khi bốc ăn, đây là giai đoạn quan trọng phát triển trí não qua đôi tay.'
+    },
+    commonIssues: [
+      {
+        title: 'Ném thức ăn xuống sàn',
+        description: 'Bé cố tình ném bát, thìa, thức ăn.',
+        solution: 'Bình tĩnh dọn dẹp, dạy bé quy tắc "Ăn là ở bàn, ném là cất đồ ăn".'
+      }
+    ]
+  },
+
+  // THÁNG 10
+  {
+    id: 'month_10',
+    title: 'Tháng thứ 10 (9 - 10 tháng)',
+    ageRange: '9 - 10 tháng tuổi',
+    milestones: [
+      'Đứng buông tay vài giây.',
+      'Đi men theo đồ đạc thành thạo.',
+      'Biết vẫy tay, gật đầu, chỉ ngón tay vào đồ vật mình thích.',
+      'Hiểu các mệnh lệnh ngắn ("Lại đây", "Đưa cho mẹ").'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 500-600ml/ngày. Năng lượng ăn dặm: 350 kcal/ngày.',
+      mealsCount: 'Sữa: 3 cữ/ngày + Ăn dặm: 3 bữa chính/ngày.',
+      essentialNutrients: ['Đạm hải sản phong phú (Tôm, Cua, Cá biển).', 'Canxi & Vitamin D.'],
+      recommendedFoods: [
+        '🦀 Tôm biển, Cua biển, Cá hồi, Cá thu',
+        '🍚 Cháo đặc nguyên hạt hoặc Cơm nát mềm',
+        '🍇 Hoa quả tươi cắt miếng (kiwi, dưa hấu, dâu tây)',
+        '🥛 Sữa chua, phô mai'
+      ],
+      foodsToAvoid: ['Gia vị mặn, mật ong, nước ốc/sò cứng'],
+      weaningTips: 'Tăng độ thô lên cơm nát hoặc cháo rất đặc. Tập cho bé tự dùng thìa xúc ăn.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Đi men theo tường', 'Chỉ ngón tay thể hiện ý muốn', 'Chỉ bộ phận cơ thể'],
+      recommendedGames: [
+        {
+          gameTitle: '👁️ Mắt ở đâu? Mũi ở đâu?',
+          howToPlay: 'Hỏi bé "Mắt mẹ đâu?", "Mũi bé đâu?" rồi chỉ vào vị trí và cười vui vẻ.',
+          benefit: 'Phát triển nhận thức bộ phận cơ thể và vốn từ vựng sơ khai.'
+        },
+        {
+          gameTitle: '🛒 Đẩy thùng carton tập bước',
+          howToPlay: 'Cho bé bám vào chiếc thùng carton có chứa vài quyển sách nặng để bé đẩy tiến phía trước.',
+          benefit: 'Tạo đà phản xạ đôi chân chuẩn bị cho những bước đi tự do.'
+        }
+      ],
+      parentTips: 'Khen ngợi bé bằng những nụ cười và vỗ tay mỗi khi bé tự đứng vững.'
+    },
+    commonIssues: [
+      {
+        title: 'Biếng ăn mọc răng',
+        description: 'Bé quấy không chịu ăn cháo.',
+        solution: 'Đổi sang các món mát lạnh mềm như mì udon cắt ngắn, sữa chua, trái cây tươi.'
+      }
+    ]
+  },
+
+  // THÁNG 11
+  {
+    id: 'month_11',
+    title: 'Tháng thứ 11 (10 - 11 tháng)',
+    ageRange: '10 - 11 tháng tuổi',
+    milestones: [
+      'Tự đứng dậy từ tư thế ngồi.',
+      'Bước đi 1-2 bước độc lập đầu tiên.',
+      'Nói được 2-3 từ đơn rõ nghĩa.',
+      'Tự cầm cốc uống nước.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Nhu cầu sữa: 500ml/ngày. Năng lượng ăn dặm: 400 kcal/ngày.',
+      mealsCount: 'Sữa: 3 cữ/ngày + Ăn dặm: 3 bữa chính + 1 bữa phụ.',
+      essentialNutrients: ['Đa dạng hóa 4 nhóm chất dinh dưỡng.'],
+      recommendedFoods: ['🍚 Cơm nát, mì, nuôi', '🥩 Tất cả cá thịt hải sản', '🥦 Rau củ luộc xào', '🍊 Trái cây'],
+      foodsToAvoid: ['Muối, đường, mật ong'],
+      weaningTips: 'Cho bé ngồi ăn chung mâm cùng gia đình.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Bước đi độc lập', 'Xếp chồng 2 khối gỗ', 'Đưa và nhận đồ vật'],
+      recommendedGames: [
+        {
+          gameTitle: '🧱 Xếp tháp 2 khối gỗ',
+          howToPlay: 'Hướng dẫn bé đặt 1 khối gỗ lên trên 1 khối gỗ khác mà không làm đổ.',
+          benefit: 'Rèn luyện sự kiên nhẫn, điều khiển ngón tay chính xác và tư duy không gian.'
+        },
+        {
+          gameTitle: '🎾 Bắt bóng lăn trên sàn',
+          howToPlay: 'Ngồi đối diện bé 1 mét và lăn quả bóng cao su nhẹ về phía bé, bảo bé lăn lại.',
+          benefit: 'Tương tác xã hội 2 chiều và phản xạ đón bắt.'
+        }
+      ],
+      parentTips: 'Cho bé mang giày tập đi đế mềm chống trượt khi tập đi ngoài sân.'
+    },
+    commonIssues: [
+      {
+        title: 'Té ngã khi tập đi',
+        description: 'Bé hay ngã va đập.',
+        solution: 'Bọc xốp góc bàn nhọn, lót thảm mềm chống trượt.'
+      }
+    ]
+  },
+
+  // THÁNG 12 (1 TUỔI)
+  {
+    id: 'month_12',
+    title: 'Tháng thứ 12 (11 - 12 tháng) 🎂 MỐC 1 TUỔI - BẮT CHƯỚC & NÓI TỪ ĐƠN',
+    ageRange: '11 - 12 tháng tuổi (1 Tuổi)',
+    milestones: [
+      'ĐÃ TRÒN 1 TUỔI - Đi lại chập chững vững hơn.',
+      'Vốn từ 3-5 từ, biết bắt chước tiếng động vật ("Gâu gâu", "Meo meo").',
+      'Tự dùng ngón tay bốc ăn thành thạo.',
+      'Hiểu và làm theo các chỉ dẫn 2 bước đơn giản.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Sữa: 400-500ml/ngày. Năng lượng ăn dặm: 500 kcal/ngày.',
+      mealsCount: 'Sữa: 2-3 cữ/ngày + Ăn dặm: 3 bữa chính cơm cùng gia đình + 2 bữa phụ.',
+      essentialNutrients: [
+        'CÓ THỂ DÙNG SỮA TƯƠI NGUYÊN KEM.',
+        'CÓ THỂ NÊM NHẸ GIA VỊ DÀNH CHO TRẺ EM.',
+        'ĂN ĐƯỢC MẬT ONG (từ 1 tuổi trở đi).'
+      ],
+      recommendedFoods: [
+        '🍚 Cơm mềm gia đình (thức ăn cắt nhỏ nêm nhạt)',
+        '🥛 Sữa tươi tiệt trùng nguyên kem',
+        '🍯 Mật ong (chữa ho từ 12 tháng tuổi)',
+        '🍳 Trứng nguyên quả (cả lòng đỏ & lòng trắng)',
+        '🥑 Trái cây, sữa chua, phô mai'
+      ],
+      foodsToAvoid: ['Đồ ăn quá mặn, nước ngọt có ga, kẹo cứng nguy cơ hóc'],
+      weaningTips: 'Sữa bây giờ trở thành BỮA PHỤ, cơm thức ăn chính là BỮA CHÍNH cung cấp 70% năng lượng sống.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Đi chập chững tự do', 'Bắt chước tiếng kêu con vật', 'Vẽ nguệch ngoạc'],
+      recommendedGames: [
+        {
+          gameTitle: '🐶 Con chó kêu thế nào? (Tiếng kêu động vật)',
+          howToPlay: 'Giơ bức ảnh con chó/mèo ra và giả tiếng "Gâu gâu!", "Meo meo!" cho bé nhại theo.',
+          benefit: 'Bật âm ngôn ngữ sống động và nhận biết thế giới động vật.'
+        },
+        {
+          gameTitle: '✏️ Họa sĩ nhí vẽ nguệch ngoạc',
+          howToPlay: 'Đưa cho bé 1 tờ giấy A4 to và bút màu sáp hữu cơ an toàn cho bé tô vẽ tùy ý.',
+          benefit: 'Giải phóng sức sáng tạo trí tuệ và cầm nắm vận động tinh.'
+        }
+      ],
+      parentTips: 'Tổ chức tiệc sinh nhật 1 tuổi ấm áp gia đình và ghi lại những khoảnh khắc đáng nhớ của bé.'
+    },
+    commonIssues: [
+      {
+        title: 'Biếng ăn sinh lý 1 tuổi',
+        description: 'Bé mải chơi tập đi nên chán ăn.',
+        solution: 'Không kéo dài bữa ăn quá 30 phút. Tôn trọng dạ dày bé.'
+      }
+    ]
+  },
+
+  // 12 - 18 THÁNG
+  {
+    id: 'toddler_12_18m',
+    title: 'Giai đoạn 12 - 18 tháng tuổi',
+    ageRange: '12 - 18 tháng tuổi',
+    milestones: [
+      'Đi lại vững vàng, biết chạy lon ton, trèo cầu thang.',
+      'Vốn từ 10-20 từ, biết trỏ tay đòi đồ mình muốn.',
+      'Tự dùng thìa múc ăn, tự cầm cốc uống nước.',
+      'Bắt đầu có cá tính riêng, biết giận dỗi.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Sữa: 400ml/ngày. Ăn 3 bữa chính cơm gia đình.',
+      mealsCount: '3 bữa chính + 2 bữa phụ.',
+      essentialNutrients: ['Đa dạng dinh dưỡng 4 nhóm chất.'],
+      recommendedFoods: ['Cơm gia đình cắt nhỏ, thịt cá rau củ, sữa tươi, sữa chua'],
+      foodsToAvoid: ['Đồ ăn nhanh, đồ chiên rán dầu mỡ tái chế'],
+      weaningTips: 'Tạo thói quen ăn uống tập trung: KHÔNG tivi, KHÔNG điện thoại, KHÔNG bế rong.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Chạy lon ton thăng bằng', 'Sử dụng thìa xúc ăn', 'Nói từ ghép 2 từ'],
+      recommendedGames: [
+        {
+          gameTitle: '⚽ Ném bóng vào rổ',
+          howToPlay: 'Cho bé cầm quả bóng nhựa ném vào chiếc rổ nhựa cách 1 mét.',
+          benefit: 'Phát triển định hướng không gian và lực cơ tay.'
+        },
+        {
+          gameTitle: '📚 Nhận biết con vật qua sách tranh',
+          howToPlay: 'Đọc sách tranh và hỏi bé "Con voi đâu?", "Con hươu đâu?" để bé chỉ vào.',
+          benefit: 'Mở rộng vốn từ vựng danh từ tư duy.'
+        }
+      ],
+      parentTips: 'Đọc sách cùng bé mỗi tối 15 phút trước khi đi ngủ.'
+    },
+    commonIssues: [
+      {
+        title: 'Ăn vạ & Cáu gắt',
+        description: 'Bé khóc ăn vạ khi không được như ý.',
+        solution: 'Giữ bình tĩnh, phớt lờ hành vi ăn vạ, giải thích khi bé dịu lại.'
+      }
+    ]
+  },
+
+  // 18 - 24 THÁNG (2 TUỔI)
+  {
+    id: 'toddler_18_24m',
+    title: 'Giai đoạn 18 - 24 tháng tuổi (Khủng hoảng tuổi lên 2)',
+    ageRange: '18 - 24 tháng tuổi (2 Tuổi)',
+    milestones: [
+      'Chạy nhanh, nhảy bằng 2 chân, đá bóng.',
+      'Nói câu ngắn 2-3 từ ("Mẹ bế", "Bé uống sữa"). Vốn từ 50+ từ.',
+      'Biết tự cởi tất, cởi giày đơn giản.',
+      'Xuất hiện tâm lý Khủng hoảng tuổi lên 2 (Nói "Không!" với mọi thứ).'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Sữa: 300-400ml/ngày. Năng lượng: 900-1000 kcal/ngày.',
+      mealsCount: '3 bữa chính cơm gia đình + 2 bữa phụ.',
+      essentialNutrients: ['Canxi & Vitamin D phát triển chiều cao.'],
+      recommendedFoods: ['Cơm gia đình, cá biển, thịt bò, rau củ quả, sữa chua, phô mai'],
+      foodsToAvoid: ['Bánh kẹo ngọt quá nhiều gây sâu răng & béo phì'],
+      weaningTips: 'Rèn luyện kỹ năng tự lập trên bàn ăn.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Nhảy bật 2 chân', 'Phân loại màu sắc', 'Nói câu 2-3 từ hoàn chỉnh'],
+      recommendedGames: [
+        {
+          gameTitle: '🔴 Phân loại bóng theo Màu sắc (Đỏ, Xanh, Vàng)',
+          howToPlay: 'Chuẩn bị 3 chiếc rổ 3 màu và bảo bé nhặt bóng đỏ vào rổ đỏ, bóng xanh vào rổ xanh.',
+          benefit: 'Phát triển tư duy logic toán học phân loại sớm.'
+        },
+        {
+          gameTitle: '👩‍🍳 Trò chơi Đóng vai Nấu ăn / Bác sĩ',
+          howToPlay: 'Cùng bé chơi đồ chơi đồ bếp nấu ăn, đút ăn cho gấu bông.',
+          benefit: 'Tương tác xã hội và phát triển trí tưởng tượng phong phú.'
+        }
+      ],
+      parentTips: 'Kiên nhẫn với giai đoạn "Nói KHÔNG" của bé. Cho bé lựa chọn 2 phương án thay vì ra lệnh.'
+    },
+    commonIssues: [
+      {
+        title: 'Khủng hoảng tuổi lên 2 (Terrible Twos)',
+        description: 'Bé bướng bỉnh, nói không, ăn vạ dồn dập.',
+        solution: 'Cho bé quyền lựa chọn 2 phương án. Ôm xoa dịu cảm xúc.'
+      }
+    ]
+  },
+
+  // 2 - 3 TUỔI
+  {
+    id: 'preschool_2_3y',
+    title: 'Giai đoạn 2 - 3 tuổi (Tự lập & Tập đi bô)',
+    ageRange: '2 - 3 tuổi',
+    milestones: [
+      'Nói câu hoàn chỉnh 3-4 từ, liên tục hỏi "Cái gì đây?".',
+      'Biết tự đi bô/vệ sinh, tự rửa tay.',
+      'Nhận biết màu sắc cơ bản, đếm số 1-5.',
+      'Biết chia sẻ đồ chơi (dù đôi khi vẫn tranh giành).'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Sữa: 300ml/ngày. Năng lượng: 1100 kcal/ngày.',
+      mealsCount: '3 bữa chính cùng gia đình + 2 bữa phụ.',
+      essentialNutrients: ['Cân bằng Protein, Chất xơ, Canxi và Khoáng chất.'],
+      recommendedFoods: ['Cơm gia đình, trái cây tươi, hạt dinh dưỡng giã mịn, sữa tươi'],
+      foodsToAvoid: ['Nước ngọt có ga, đồ ăn vặt phẩm màu'],
+      weaningTips: 'Khuyến khích bé tự xúc ăn thành thạo.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Tự đi bô/vệ sinh', 'Xếp hình Puzzle 4-6 mảnh', 'Xỏ hạt dây nhựa'],
+      recommendedGames: [
+        {
+          gameTitle: '🧩 Xếp hình Puzzle đơn giản (4-6 mảnh)',
+          howToPlay: 'Cho bé tự xoay ghép mảnh ghép hình con vật.',
+          benefit: 'Rèn luyện khả năng quan sát chi tiết và tư duy hình học.'
+        },
+        {
+          gameTitle: '📿 Xỏ hạt cườm to qua dây',
+          howToPlay: 'Hướng dẫn bé luồn sợi dây qua các hạt nhựa to có lỗ.',
+          benefit: 'Khéo léo ngón tay và sự tập trung kiên trì.'
+        }
+      ],
+      parentTips: 'Tập đi bô cho bé bằng sự động viên ngọt ngào, không quát mắng khi bé tè dầm.'
+    },
+    commonIssues: [
+      {
+        title: 'Tè dầm & Sợ đi bô',
+        description: 'Bé không chịu ngồi bô.',
+        solution: 'Mua bô hình thù ngộ nghĩnh, khen ngợi mỗi khi bé đi bô thành công.'
+      }
+    ]
+  },
+
+  // 3 - 5 TUỔI
+  {
+    id: 'preschool_3_5y',
+    title: 'Giai đoạn 3 - 5 tuổi (Mầm non & Trí tuệ nhận thức)',
+    ageRange: '3 - 5 tuổi',
+    milestones: [
+      'Nói lưu khoát thành thạo, liên tục hỏi câu hỏi "Tại sao?".',
+      'Tự mặc quần áo, tự chải răng, tự đi vệ sinh 100%.',
+      'Đếm số từ 1-20, nhận biết hình khối, màu sắc, vẽ hình đơn giản.',
+      'Kết bạn, chơi nhập vai đóng vai cùng bạn bè mầm non.'
+    ],
+    nutritionAndWeaning: {
+      milkAndCalories: 'Sữa: 300-400ml/ngày. Năng lượng: 1200-1400 kcal/ngày.',
+      mealsCount: '3 bữa chính phong phú + 2 bữa phụ.',
+      essentialNutrients: ['DHA & Choline phát triển trí não bùng nổ chuẩn bị đi học.'],
+      recommendedFoods: ['Đa dạng thực phẩm cơm mâm gia đình, trứng, cá hồi, hạt dinh dưỡng, rau củ quả'],
+      foodsToAvoid: ['Đồ ăn vặt không lành mạnh, thức ăn quá nhiều mỡ'],
+      weaningTips: 'Dạy bé văn hóa bàn ăn và tự dọn dẹp bát đĩa sau khi ăn.'
+    },
+    skillsAndGames: {
+      targetSkills: ['Giao tiếp tư duy phản biện', 'Tự lập chăm sóc bản thân', 'Vẽ tranh theo trí tưởng tượng'],
+      recommendedGames: [
+        {
+          gameTitle: '🎭 Đóng vai Nghề nghiệp (Bác sĩ, Cô giáo, Công an)',
+          howToPlay: 'Phân vai cùng bé đóng cảnh khám bệnh hoặc dạy học.',
+          benefit: 'Phát triển kỹ năng giao tiếp xã hội và trí tuệ cảm xúc (EQ).'
+        },
+        {
+          gameTitle: '🎨 Tranh vẽ tự do & Kể chuyện sáng tạo',
+          howToPlay: 'Cho bé vẽ tranh rồi bảo bé "Con kể cho mẹ nghe bức tranh này nói về gì?".',
+          benefit: 'Bùng nổ khả năng diễn đạt ngôn ngữ và tư duy hình ảnh.'
+        }
+      ],
+      parentTips: 'Hãy kiên nhẫn trả lời các câu hỏi "Tại sao?" của bé với thái độ khuyến khích tò mò.'
+    },
+    commonIssues: [
+      {
+        title: 'Sợ bóng tối & Quái vật',
+        description: 'Tư tưởng phong phú khiến bé tưởng tượng sợ hãi.',
+        solution: 'Tôn trọng cảm xúc bé, để đèn ngủ mờ nhẹ, đọc truyện dũng cảm cho bé.'
       }
     ]
   }

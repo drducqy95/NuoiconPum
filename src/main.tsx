@@ -6,8 +6,16 @@ import './index.css';
 window.addEventListener('error', (event) => {
   console.error('Global script error:', event.error || event.message);
   const root = document.getElementById('root');
-  if (root && !root.innerHTML) {
-    root.innerHTML = `<div style="padding:20px;color:red;"><h1>Global Error</h1><pre>${event.message}</pre></div>`;
+  if (root && !root.hasChildNodes()) {
+    const errorContainer = document.createElement('div');
+    errorContainer.style.cssText = 'padding:20px;color:red;font-family:sans-serif;';
+    const title = document.createElement('h1');
+    title.textContent = 'Global Error';
+    const detail = document.createElement('pre');
+    detail.textContent = String(event.message || 'An unexpected error occurred.');
+    errorContainer.appendChild(title);
+    errorContainer.appendChild(detail);
+    root.appendChild(errorContainer);
   }
 });
 

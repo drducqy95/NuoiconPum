@@ -6,44 +6,6 @@ export interface AbnormalCondition {
   whenToSeeDoctor: string;
 }
 
-export const abnormalConditions: AbnormalCondition[] = [
-  {
-    id: "fever",
-    title: "Sốt (Fever)",
-    symptoms: "Nhiệt độ cơ thể > 37.5°C mọc răng, viêm họng, hoặc phản ứng sau tiêm. Trẻ có thể quấy khóc, lừ đừ, ăn kém.",
-    homeCare: "Mặc quần áo thoáng mát. Cho trẻ bú/pha sữa hoặc uống nhiều nước (Oresol nếu cần). Lau mát bằng nước ấm ở nách, bẹn. Dùng hạ sốt (Paracetamol) khi > 38.5°C.",
-    whenToSeeDoctor: "Trẻ < 3 tháng sốt ≥ 38°C; sốt cao liên tục không hạ dù đã uống thuốc; sốt kèm co giật, thở bất thường, tím tái, ban xuất huyết, lừ đừ li bì."
-  },
-  {
-    id: "diarrhea_vomiting",
-    title: "Tiêu chảy & Nôn trớ",
-    symptoms: "Bé đi ngoài phân lỏng, tóe nước nhiều lần trong ngày (>3 lần). Nôn trớ liên tục, không giữ được thức ăn/sữa.",
-    homeCare: "Quan trọng nhất là bù nước: tăng cường bú mẹ, uống Oresol (pha đúng tỉ lệ tuyệt đối). Chia nhỏ cữ bú/ăn. Giữ vệ sinh tay và đồ chơi.",
-    whenToSeeDoctor: "Trẻ có dấu hiệu mất nước (khóc không nước mắt, mắt trũng, thóp lõm, tiểu ít/không tiểu 6h liên tục), phân có máu, nôn ra dịch xanh/vàng."
-  },
-  {
-    id: "respiratory_distress",
-    title: "Khò khè, khó thở",
-    symptoms: "Thở khò khè, khụt khịt mũi, ho nhiều, nhịp thở nhanh hơn bình thường, lồng ngực rút lõm khi hít vào.",
-    homeCare: "Nhỏ/Rửa mũi bằng nước muối sinh lý ấm. Kê cao đầu khi ngủ. Sử dụng máy tạo ẩm phòng (nếu dùng điều hòa) để tránh không khí quá khô.",
-    whenToSeeDoctor: "Trẻ thở rất nhanh (>60 lần/phút ở trẻ <2 tháng, >50 lần ở trẻ 2-12 tháng); rút lõm lồng ngực rõ rệt; tím môi, quanh miệng; khò khè kèm không chịu bú."
-  },
-  {
-    id: "allergy_rash",
-    title: "Nổi ban đỏ, dị ứng",
-    symptoms: "Da mẩn đỏ, ngứa ngáy (mề đay), có thể xuất hiện sau khi đổi sữa, ăn dặm món mới, bị côn trùng đốt, hoặc do thời tiết.",
-    homeCare: "Mặc đồ cotton thoáng mát. Tắm bằng nước vừa phải (không quá nóng). Tránh cọ xát mạnh, cắt ngắn móng tay của bé. Bôi kem dưỡng ẩm dịu nhẹ.",
-    whenToSeeDoctor: "Ban nổi rất nhanh, lan rộng toàn thân kèm theo sưng phù mặt/môi/mắt, thở khò khè, khàn tiếng, nôn mửa (dấu hiệu Sốc phản vệ - cần ĐI CẤP CỨU NGAY)."
-  },
-  {
-    id: "constipation",
-    title: "Táo bón",
-    symptoms: "Đi ngoài thưa thớt, phân cứng, lổn nhổn, khô. Bé rặn đỏ mặt, khóc hoảng sợ khi cố đi vệ sinh.",
-    homeCare: "Bé ăn dặm: tăng cường chất xơ (rau dền, mồng tơi, đu đủ), uống đủ nước. Nhũ nhi: massage bụng theo chiều kim đồng hồ, tập động tác đạp xe. Không lạm dụng thụt tháo.",
-    whenToSeeDoctor: "Táo bón kéo dài trên 1 tuần không cải thiện, phân có lẫn máu, bụng chướng to, ném sữa liên tục, chậm tăng cân."
-  }
-];
-
 export interface FirstAidGuide {
   id: string;
   title: string;
@@ -52,114 +14,186 @@ export interface FirstAidGuide {
   warnings: string[];
 }
 
-export const firstAidGuides: FirstAidGuide[] = [
-  {
-    id: "choking",
-    title: "Hóc dị vật (Nghẹt thở)",
-    goldenRule: "Giải quyết TỪNG GIÂY. Tuyệt đối không dùng ngón tay móc mù vào họng bé vì có thể đẩy dị vật sâu hơn.",
-    steps: [
-      "Trẻ < 1 tuổi: Đặt trẻ nằm sấp dọc theo cánh tay bạn, đầu thấp hơn ngực. Dùng gót bàn tay vỗ mạnh 5 cái vào giữa hai xương bả vai. Nếu dị vật chưa rớt, lật ngửa bé, dùng 2 ngón tay ấn mạnh 5 cái ở giữa ngực.",
-      "Trẻ > 1 tuổi: Đứng phía sau, ôm vòng qua bụng trẻ (Heimlich). Đặt một nắm đấm ngay vùng thượng vị (trên rốn), bàn tay kia ôm lấy nắm đấm, giật mạnh từ trước ra sau, từ dưới lên trên 5 lần.",
-      "Lặp lại tới khi dị vật bật ra hoặc xe cấp cứu tớ."
-    ],
-    warnings: [
-      "Không bao giờ bế xốc ngược lên dốc đầu xuống đập lưng khi bé đang cố ho vì dị vật có thể rớt ngược lại che kín đường thở.",
-      "Chỉ làm khi bé ho yếu, tiếng ho tắt nghẹn, tím tái. Nếu bé vẫn đang khóc lớn và ho mạnh được, hãy để bé tự ho."
-    ]
-  },
-  {
-    id: "seizure",
-    title: "Co giật do sốt cao",
-    goldenRule: "Bình tĩnh bảo vệ bé khỏi chấn thương. Cơn giật thường tự hết sau 1-3 phút. CHỐNG CHỈ ĐỊNH nhét bất kỳ vật gì vào miệng.",
-    steps: [
-      "Đặt bé nằm nghiêng sang một bên trên mặt phẳng an toàn (để đờm dãi chảy ra ngoài, tránh hít sặc).",
-      "Nới lỏng quần áo khu vực cổ, ngực.",
-      "Ghi nhớ cụ thể thời điểm bắt đầu và kết thúc cơn giật (để báo bác sĩ).",
-      "Sau khi dứt cơn giật, bé có thể ngủ lịm đi. Cần lau mát bằng nước ấm và cho uống thuốc hạ sốt khi bé đã tỉnh."
-    ],
-    warnings: [
-      "Tuyệt đối không nhét ngón tay, thìa, đũa hay vắt chanh vào miệng bé (dễ gây gãy răng, sặc nghẹt đường thở).",
-      "Không ôm cố ghì chặt bé lại trong lúc co giật.",
-      "Đưa đi cấp cứu ngay nếu giật trên 5 phút hoặc có nhiều cơn giật liên tiếp chưa kịp tỉnh."
-    ]
-  },
-  {
-    id: "burn",
-    title: "Phỏng (Bỏng)",
-    goldenRule: "Hạ nhiệt ngay lập tức bằng NƯỚC MÁT SẠCH trong ít nhất 15-20 phút.",
-    steps: [
-      "Ngay lập tức để vùng bị bỏng dưới vòi nước chảy nhẹ, mát và sạch (nước máy nhiệt độ phòng) từ 15 - 20 phút.",
-      "Nhẹ nhàng cởi bỏ quần áo hoặc trang sức ở vùng bị bỏng (trừ khi quần áo dính sát vào vết bỏng thì phải để bác sĩ cắt).",
-      "Dùng gạc vô trùng hoặc khăn sạch và ẩm che lỏng vết bỏng.",
-      "Đưa trẻ đi khám, đặc biệt với các vết bỏng ở mặt, bàn tay, bàn chân, vùng sinh dục."
-    ],
-    warnings: [
-      "Tuyệt đối KHÔNG bôi kem đánh răng, nước mắm, mỡ trăn, hay đắp lá rễ cây (nguy cơ nhiễm trùng và làm sâu vết bỏng).",
-      "KHÔNG dùng nước đá lạnh chườm trực tiếp vì có thể gây bỏng lạnh, hoại tử mô tế bào."
-    ]
-  },
-  {
-    id: "head_injury",
-    title: "Chấn thương đầu (Té ngã)",
-    goldenRule: "Theo dõi sát sao ý thức và biểu hiện của trẻ trong vòng 24 - 48 giờ sau khi ngã.",
-    steps: [
-      "Trấn an bé. Chườm lạnh nhẹ nhàng ngay tại chỗ sưng (bọc đá trong khăn) khoảng 10-15 phút để giảm sưng bầm.",
-      "Quan sát bé, nếu bé khóc một lúc rồi chơi bình thường, ăn ngủ bình thường thì ba mẹ có thể an tâm theo dõi tại nhà.",
-      "Trong 2 đêm đầu, ba mẹ cần kiểm tra bé vài lần trong lúc ngủ xem nhịp thở đều không."
-    ],
-    warnings: [
-      "KHÔNG xoa dầu nóng, chườm nóng hay các loại rượu thuốc lên vết sưng bầm trên đầu bé (làm mạch máu giãn ra, sưng/chảy máu trong nhiều hơn).",
-      "Cần ĐI CẤP CỨU NGAY nếu: Bé bất tỉnh, nôn vọt (nôn nhiều lần), lờ đờ/li bì khó đánh thức, khóc ré liên tục dỗ không nín, co giật, hoặc chảy máu/khoảng dịch trong ra từ tai/mũi."
-    ]
-  }
-];
-
-export interface MedicineItem {
+export interface MedicineInfo {
   name: string;
   usage: string;
   dosageNotes: string;
   warnings: string;
 }
 
-export const medicinesList: MedicineItem[] = [
+export const abnormalConditions: AbnormalCondition[] = [
   {
-    name: "Paracetamol",
-    usage: "Hạ sốt, giảm đau (đau do tiêm, đau mọc răng).",
-    dosageNotes: "10-15mg/kg cân nặng mỗi lần. Lặp lại sau 4-6 tiếng nếu vẫn còn sốt. Tối đa không quá 4-5 cữ/ngày.",
-    warnings: "Đây là thuốc lành tính nhất cho trẻ nhỏ. Hết sức chú ý liều lượng dùng chính xác theo CÂN NẶNG, không tính theo tuổi."
+    id: "fever",
+    title: "Sốt ở trẻ nhỏ (Fever)",
+    symptoms: "Thân nhiệt kẹp nách > 37.5°C (hoặc đo tai/trán > 38°C) do mọc răng, virus, vi khuẩn hoặc sau khi tiêm chủng. Trẻ quấy khóc, má đỏ hây hây, lừ đừ hoặc sốt run.",
+    homeCare: "Mặc quần áo rộng rãi, thoáng mát bằng vải cotton. Cho bé uống nhiều nước/Oresol hoặc tăng cữ bú mẹ. Lau mát bằng nước ấm (37°C) ở nách, bẹn. Cho uống Paracetamol (10-15mg/kg/lần, cách 4-6h) khi sốt > 38.5°C.",
+    whenToSeeDoctor: "Trẻ dưới 3 tháng tuổi sốt ≥ 38°C (cần đi viện gấp); Sốt cao liên tục > 39°C không hạ dù đã uống đúng liều thuốc; Sốt kéo dài > 48h; Sốt kèm co giật, thở gấp rút lõm ngực, lơ mơ li bì hoặc xuất hiện nốt xuất huyết."
   },
   {
-    name: "Ibuprofen",
-    usage: "Hạ sốt mạnh hơn, kháng viêm.",
-    dosageNotes: "Chỉ dùng cho trẻ TRÊN 6 tháng tuổi, thường dùng khi sốt cao khó hạ bằng Paracetamol (theo hướng dẫn y tế).",
-    warnings: "Tuyệt đối KHÔNG DÙNG nếu nghi ngờ Sốt xuất huyết. Không dùng cho trẻ bị hen suyễn, bệnh gan thận, loét dạ dày."
+    id: "diarrhea_vomiting",
+    title: "Tiêu chảy cấp & Nôn trớ",
+    symptoms: "Bé đi ngoài phân lỏng tóe nước > 3 lần/ngày, phân có mùi chua hoặc nôn trớ dồn dập không giữ được thức ăn/sữa.",
+    homeCare: "QUAN TRỌNG NHẤT LÀ BÙ NƯỚC: Cho uống Oresol (pha đúng chuẩn 1 gói với đúng dung tích nước lọc trên bao bì). Tăng cường cữ bú mẹ. Ăn cháo nhung nấu cùng thịt lợn/gà, cà rốt. Bổ sung Men vi sinh & Kẽm (Zinc 10-20mg/ngày trong 14 ngày).",
+    whenToSeeDoctor: "Có dấu hiệu MẤT NƯỚC NẶNG: Khóc không có nước mắt, mắt trũng sâu, thóp lõm, khô môi, không đi tiểu trong 6 tiếng; Phân có lẫn máu tươi hoặc nhầy máu; Nôn ra dịch xanh/vàng."
   },
   {
-    name: "Nước muối sinh lý (NaCl 0.9%)",
-    usage: "Vệ sinh mắt, mũi hàng ngày, làm sạch ráy tai ngoài hoặc rửa vết thương nông.",
-    dosageNotes: "Nhỏ 1-2 giọt vào mỗi bên mũi/mắt rồi dùng tăm bông/khăn mềm lai sạch.",
-    warnings: "An toàn. Khi bé nghẹt mũi nặng có thể kết hợp với các loại dung dịch xịt ưu trương (theo chỉ định) nhưng màng nhầy trẻ em rất mỏng manh, không nên lạm dụng xịt/rửa quá mạnh."
+    id: "respiratory_distress",
+    title: "Viêm phế quản, Khò khè & Thở gấp",
+    symptoms: "Ho hắng dồn dập, thở khò khè, chảy mũi trong/đục, tiếng thở rên rẩm, nhịp thở nhanh dồn dập, lồng ngực rút lõm sâu.",
+    homeCare: "Vệ sinh mũi bằng nước muối sinh lý 0.9% hoặc nước muối ưu trương 3%. Dùng dụng cụ hút mũi dịu nhẹ. Kê cao đầu 15 độ khi ngủ. Cho uống nhiều nước ấm hoặc siro ho thảo dược lá thường xuân.",
+    whenToSeeDoctor: "DẤU HIỆU SUY HÔ HẤP CẤP: Nhịp thở nhanh (>60 lần/phút ở trẻ <2 tháng, >50 lần ở 2-12 tháng, >40 lần ở 1-5 tuổi); Lồng ngực rút lõm sâu khi hít vào; Tím tái môi và đầu ngón tay; Thở rên rẩm không chịu bú."
   },
   {
-    name: "Oresol (Bù nước và điện giải)",
-    usage: "Dùng khi bé tiêu chảy, nôn mửa, sốt nhiều mồ hôi.",
-    dosageNotes: "PHA ĐÚNG TỈ LỆ NƯỚC GHI TRÊN GÓI (Ví dụ: pha với chính xác 200ml hoặc 1000ml nước đun sôi để nguội).",
-    warnings: "Pha quá loãng (không có tác dụng) hoặc pha quá đặc (kéo nước vào ruột, làm đi ngoài nặng hơn, ngộ độc muối). Không chia nhỏ bột để pha."
+    id: "hand_foot_mouth",
+    title: "Bệnh Tay Chân Miệng (HFMD)",
+    symptoms: "Sốt nhẹ hoặc sốt cao, xuất hiện các vết loét đỏ ở niêm mạc miệng/lưỡi khiến bé chảy dãi và không chịu ăn. Nổi mụn nước bóng ở lòng bàn tay, lòng bàn chân, mông, đầu gối.",
+    homeCare: "Tắm rửa nốt mụn nước bằng nước sạch nhẹ nhàng. Bôi dung dịch rơ miệng dịu nhẹ (như Zinol, Kamistad) để giảm đau vết loét miệng trước bữa ăn. Cho ăn thức ăn lỏng, nguội, mềm (súp, cháo, sữa lạnh).",
+    whenToSeeDoctor: "DẤU HIỆU BIẾN CHỨNG THẦN KINH/TIM MẠCH: Sốt cao liên tục > 39°C không hạ; Giật mình chới với khi ngủ (xuất hiện > 2 lần/30 phút); Đi đứng loạng choạng, run chi, mắt nhìn ngược."
   },
   {
-    name: "Thuốc ho / Siro ho thảo dược",
-    usage: "Làm dịu họng, giảm ho tự nhiên (Prospan, chanh đào mật ong...).",
-    dosageNotes: "Theo chỉ định trên chai tùy độ tuổi. Mật ong CHỈ dùng cho trẻ > 1 tuổi (phòng ngừa ngộ độc Botulism).",
-    warnings: "Trẻ dưới 2 tuổi không nên dùng các loại thuốc tân dược cắt phản xạ ho (trừ khi bác sĩ kê đơn), vì ho là phản xạ tự nhiên giúp tống đờm ra ngoài."
+    id: "jaundice",
+    title: "Vàng da sơ sinh",
+    symptoms: "Da và tròng trắng mắt bé có màu vàng sậm xuất hiện trong những ngày đầu sau sinh.",
+    homeCare: "Vàng da sinh lý (thường xuất hiện từ ngày 3-5, chỉ vàng vùng mặt/ngực và tự hết sau 10-14 ngày): Cho bé bú mẹ dồn dập 8-12 cữ/ngày để đào thải Bilirubin qua đường phân và nước tiểu.",
+    whenToSeeDoctor: "VÀNG DA BỆNH LÝ: Vàng da xuất hiện quá sớm (trong 24h đầu sau sinh); Vàng da lan rộng xuống bụng, đùi, bàn chân; Bé lừ đừ, bỏ bú, ngủ li bì; Nước tiểu vàng sậm hoặc phân bạc màu như thạch thạch."
+  },
+  {
+    id: "otitis_media",
+    title: "Viêm tai giữa & Sổ mũi kéo dài",
+    symptoms: "Bé quấy khóc vô cớ đêm, hay lấy tay dụi/kéo vành tai, sốt, chảy dịch tai có mùi hôi, sổ mũi xanh kéo dài > 10 ngày.",
+    homeCare: "Vệ sinh mũi họng sạch sẽ bằng nước muối sinh lý ấm. Tuyệt đối không tự ý nhỏ bất kỳ loại thuốc nhỏ tai nào khi chưa được bác sĩ nội soi kiểm tra màng nhĩ.",
+    whenToSeeDoctor: "Bé đau tai dữ dội, chảy mủ hôi từ ống tai ngoài, sốt cao kéo dài hoặc có dấu hiệu nghe kém."
+  },
+  {
+    id: "constipation",
+    title: "Táo bón nhi khoa",
+    symptoms: "Đi ngoài thưa thớt (> 3 ngày/lần), phân khô cứng lổn nhổn như phân dê. Bé rặn đỏ mặt, khóc hoảng sợ khi cố đi vệ sinh.",
+    homeCare: "Bé ăn dặm: Tăng cường chất xơ (rau dền, mồng tơi, đu đủ, khoai lang, mận tây), uống đủ nước. Nhũ nhi: Massage bụng theo chiều kim đồng hồ, tập động tác đạp xe. Có thể dùng dung dịch nhuận trường thẩm thấu Macrogol 4000 theo tư vấn bác sĩ.",
+    whenToSeeDoctor: "Táo bón kéo dài > 2 tuần, nứt kẽ hậu môn chảy máu tươi, bụng chướng to cứng, nôn trớ dồn dập, chậm tăng cân."
   }
 ];
 
-export const medicineCabinetItems = [
-  "Cặp nhiệt độ (nhiệt kế điện tử hồng ngoại hoặc kẹp nách).",
-  "Thuốc hạ sốt (Paracetamol) dạng siro cho uống hoặc dạng viên đạn nhét hậu môn (dùng lúc bé không uống được/bị nôn).",
-  "Nước muối sinh lý, tăm bông, miếng gạc y tế, băng dán cá nhân (urgo).",
-  "Gói bù nước Oresol.",
-  "Kem chống hăm, kem bôi sau khi bị muỗi đốt/côn trùng cắn (dịu nhẹ).",
-  "Cồn sát trùng (Povidone Iodine - Betadine) hoặc Cồn 70 độ để sát khuẩn rìa vết thương ngoài da.",
-  "Nước muối ưu trương, ống hút mũi dự phòng."
+export const firstAidGuides: FirstAidGuide[] = [
+  {
+    id: "choking",
+    title: "Hóc dị vật & Nghẹt thở (Heimlich Maneuver)",
+    goldenRule: "HÀNH ĐỘNG TRONG TỪNG GIÂY. Tuyệt đối KHÔNG dùng ngón tay móc mù vào họng bé vì dễ đẩy dị vật lùi sâu hơn che kín đường thở.",
+    steps: [
+      "Trẻ < 1 tuổi (Thủ thuật Vỗ lưng - Ấn ngực): Đặt bé nằm sấp dọc theo cẳng tay bạn, đầu thấp hơn ngực. Dùng gót bàn tay vỗ mạnh 5 cái vào giữa hai xương bả vai. Nếu chưa ra, lật ngửa bé, dùng 2 ngón tay ấn mạnh 5 cái ở giữa ngực.",
+      "Trẻ > 1 tuổi (Thủ thuật Heimlich): Đứng phía sau ôm vòng qua bụng trẻ. Đặt 1 nắm đấm tay ngay vùng thượng vị (trên rốn), tay kia ôm nắm đấm giật mạnh từ trước ra sau, từ dưới lên trên 5 lần dồn dập.",
+      "Lặp lại quy trình đến khi dị vật bật ra hoặc xe cấp cứu tớ."
+    ],
+    warnings: [
+      "Không bao giờ bế dốc ngược đầu bé đập lưng khi bé đang ho được.",
+      "Nếu bé vẫn ho mạnh, khóc to được hãy để bé tự ho đẩy dị vật ra ngoài."
+    ]
+  },
+  {
+    id: "seizure",
+    title: "Co giật do sốt cao",
+    goldenRule: "Bình tĩnh bảo vệ bé khỏi chấn thương. Cơn giật thường tự hết sau 1-3 phút. CHỐNG CHỈ ĐỊNH nhét bất kỳ vật gì vào miệng bé.",
+    steps: [
+      "Đặt bé nằm nghiêng sang một bên trên mặt phẳng an toàn (để đờm dãi chảy ra ngoài, tránh hít sặc).",
+      "Nới lỏng quần áo khu vực cổ, ngực.",
+      "Ghi nhớ thời điểm bắt đầu và kết thúc cơn giật để báo Bác sĩ.",
+      "Sau khi dứt cơn giật, lau mát bằng nước ấm và đút thuốc hạ sốt qua đường hậu môn khi bé tỉnh."
+    ],
+    warnings: [
+      "Tuyệt đối KHÔNG nhét ngón tay, thìa, đũa hay vắt chanh vào miệng bé (dễ gây gãy răng, sặc nghẹt đường thở tử vong).",
+      "Không ghì chặt hay đè nén bé trong lúc đang co giật.",
+      "Đưa đi cấp cứu ngay nếu giật kéo dài > 5 phút hoặc có nhiều cơn giật liên tiếp."
+    ]
+  },
+  {
+    id: "burn",
+    title: "Phỏng (Bỏng nước sôi / Nhiệt)",
+    goldenRule: "Hạ nhiệt vết bỏng NGAY LẬP TỨC bằng NƯỚC MÁT SẠCH trong ít nhất 15-20 phút.",
+    steps: [
+      "Ngay lập tức xả nước máy sạch mát (nhiệt độ phòng) chảy nhẹ lên vết bỏng từ 15-20 phút.",
+      "Nhẹ nhàng cởi bỏ quần áo vùng bị bỏng (nếu quần áo dính chặt vào da thì không tự giật ra, hãy để nguyên chờ bác sĩ cắt).",
+      "Dùng gạc vô trùng hoặc khăn sạch ẩm che lỏng vết bỏng.",
+      "Đưa trẻ đi cơ sở y tế gần nhất."
+    ],
+    warnings: [
+      "Tuyệt đối KHÔNG bôi kem đánh răng, nước mắm, mỡ trăn, cồn hay đắp lá rễ cây (nguy cơ hoại tử & nhiễm trùng nặng).",
+      "KHÔNG dùng nước đá chườm trực tiếp vì sẽ gây bỏng lạnh hoại tử mô."
+    ]
+  },
+  {
+    id: "head_injury",
+    title: "Té ngã & Chấn thương đầu",
+    goldenRule: "Theo dõi sát dấu hiệu chấn thương sọ não trong 48 giờ sau khi ngã.",
+    steps: [
+      "Chườm đá lạnh (bọc qua khăn vải) lên vùng đầu bị sưng bươu 15 phút để giảm sưng.",
+      "Giữ bé nằm nghỉ tĩnh lặng, không vận động mạnh.",
+      "Theo dõi sát: Tinh thần, hành vi, cữ ăn và giấc ngủ của bé trong 48 tiếng."
+    ],
+    warnings: [
+      "🚨 ĐƯA ĐI CẤP CỨU NGAY nếu bé có dấu hiệu: Nôn mửa > 2 lần, lừ đừ khó thức dậy, bất tỉnh dù vài giây, chảy máu/dịch trong từ tai hay mũi, hai đồng tử không đều."
+    ]
+  },
+  {
+    id: "poisoning",
+    title: "Ngộ độc hóa chất / Thuốc tây",
+    goldenRule: "Giữ lại vỏ chai/hộp thuốc đã nuốt phải và đưa bé đi cấp cứu ngay lập tức.",
+    steps: [
+      "Nếu bé nuốt phải hóa chất ăn mòn (xà phòng, axit, nước tẩy): KHÔNG gây nôn. Cho bé uống từng ngụm nước lọc nhỏ để pha loãng.",
+      "Thu thập ngay vỏ chai lọ hóa chất hoặc thuốc mà bé nuốt phải mang theo tới bệnh viện.",
+      "Đưa bé tới phòng cấp cứu gần nhất nhanh nhất có thể."
+    ],
+    warnings: [
+      "Tuyệt đối KHÔNG tự ý gây nôn nếu nuốt phải hóa chất ăn mòn (axit/xăng) vì sẽ làm nôn bạt nát bỏng thêm đường quản."
+    ]
+  }
+];
+
+export const medicinesList: MedicineInfo[] = [
+  {
+    name: "Paracetamol (Hạ sốt & Giảm đau)",
+    usage: "Hạ sốt khi nhiệt độ > 38.5°C hoặc giảm đau do mọc răng, viêm họng.",
+    dosageNotes: "Liều chuẩn: 10 - 15mg/kg cân nặng/lần. Cách nhau mỗi 4 - 6 tiếng. Không uống quá 4 lần/24h.",
+    warnings: "Quá liều Paracetamol gây ngộ độc hoại tử tế bào gan nghiêm trọng. Luôn cân bé để tính chính xác liều lượng."
+  },
+  {
+    name: "Ibuprofen (Hạ sốt & Kháng viêm)",
+    usage: "Dùng khi sốt cao khó hạ với Paracetamol hoặc sốt do viêm tai, viêm họng nặng.",
+    dosageNotes: "Liều chuẩn: 5 - 10mg/kg cân nặng/lần. Cách nhau mỗi 6 - 8 tiếng (Dùng cho trẻ > 6 tháng tuổi).",
+    warnings: "CHỐNG CHỈ ĐỊNH tuyệt đối khi nghi ngờ bé bị Sốt xuất huyết (gây nguy cơ xuất huyết dạ dày tử vong)."
+  },
+  {
+    name: "Nước muối sinh lý 0.9% & Nước muối ưu trương 3%",
+    usage: "Vệ sinh mắt, mũi, họng hàng ngày, làm loãng đờm nhầy khi bé sổ mũi, nghẹt mũi.",
+    dosageNotes: "Nhỏ 2-3 giọt mỗi bên mũi trước khi hút mũi hoặc trước cữ ăn.",
+    warnings: "Không lạm dụng hút mũi quá 3 lần/ngày vì sẽ gây tổn thương nêm mạc mũi của bé."
+  },
+  {
+    name: "Oresol (Dung dịch bù điện giải)",
+    usage: "Bù nước và khoáng chất bị mất do tiêu chảy, nôn mửa hoặc sốt cao kéo dài.",
+    dosageNotes: "TUYỆT ĐỐI PHA ĐÚNG TỶ LỆ: 1 gói Oresol với đúng dung tích nước lọc nguội ghi trên bao bì (ví dụ đúng 200ml hoặc 1000ml).",
+    warnings: "Pha Oresol quá đặc (ít nước) sẽ gây ngộ độc muối teo não tử vong ở trẻ nhỏ."
+  },
+  {
+    name: "Men vi sinh Probiotics (BioGaia, Enterogermina...)",
+    usage: "Cân bằng hệ vi sinh đường ruột, hỗ trợ tiêu chảy, táo bón, rối loạn tiêu hóa sau dùng kháng sinh.",
+    dosageNotes: "Uống 5 giọt/ngày hoặc 1-2 ống/ngày. Uống cách thời điểm uống kháng sinh ít nhất 2 tiếng.",
+    warnings: "Không pha men vi sinh vào nước/sữa quá nóng (>40°C) vì sẽ làm chết vi khuẩn có lợi."
+  },
+  {
+    name: "Vitamin D3-K2 (D3 Bón / D3 K2 Lineabon...)",
+    usage: "Giúp hấp thụ Canxi tối đa vào xương và răng, phòng chống rụng tóc vành khăn, rạch thóp, rạch xương.",
+    dosageNotes: "Bổ sung hàng ngày từ sơ sinh: 400 IU D3/ngày cho trẻ dưới 1 tuổi.",
+    warnings: "Nên cho bé uống vào buổi sáng cùng cữ sữa để hấp thụ tối ưu."
+  }
+];
+
+export const medicineCabinetItems: string[] = [
+  "Nhiệt kế điện tử (đo kẹp nách hoặc đo trán/tai chính xác)",
+  "Thuốc hạ sốt Paracetamol (gói pha nước + viên đặt hậu môn phòng khi bé nôn)",
+  "Nước muối sinh lý 0.9% (chai nhỏ mắt mũi)",
+  "Dụng cụ hút mũi silicon dịu nhẹ",
+  "Dung dịch bù điện giải Oresol (loại gói chuẩn y tế)",
+  "Men vi sinh Probiotics & Siro ho thảo dược lá thường xuân",
+  "Băng gạc vô trùng, gạc rơ lưỡi, nước sát trùng Povidine 10%",
+  "Kem bôi rôm sảy/hăm da (chứa Kẽm Oxit / D-Panthenol)",
+  "Dụng cụ chia liều thuốc (xi-lanh tiêm nhỏ hoặc cốc chia ml chính xác)"
 ];

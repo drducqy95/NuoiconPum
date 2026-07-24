@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { signIn, signOut } from '../firebase';
-import { Home, BookOpen, Clock, Book, Bot, LogOut, Settings as SettingsIcon, Baby } from 'lucide-react';
+import { Home, BookOpen, Clock, Book, Bot, LogOut, Settings as SettingsIcon, Baby, Syringe } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { user } = useAuth();
@@ -11,6 +11,7 @@ export const Layout: React.FC = () => {
   const navItems = [
     { name: 'Tổng quan', path: '/', icon: Home },
     { name: 'Lịch EASY', path: '/easy', icon: Clock },
+    { name: 'Tiêm chủng', path: '/vaccines', icon: Syringe },
     { name: 'Kiến thức', path: '/knowledge', icon: BookOpen },
     { name: 'Nhật ký', path: '/diary', icon: Book },
     { name: 'Trợ lý AI', path: '/assistant', icon: Bot },
@@ -30,7 +31,7 @@ export const Layout: React.FC = () => {
             </div>
             
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8">
+            <nav className="hidden md:flex space-x-6">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -89,12 +90,12 @@ export const Layout: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-                isActive ? 'text-rose-600' : 'text-gray-500 hover:text-gray-900'
+              className={`flex flex-col items-center justify-center w-full h-full space-y-0.5 ${
+                isActive ? 'text-rose-600 font-bold' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              <Icon className={`w-6 h-6 ${isActive ? 'fill-rose-50/50' : ''}`} />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <Icon className={`w-5 h-5 ${isActive ? 'fill-rose-50/50' : ''}`} />
+              <span className="text-[9px] font-medium leading-none">{item.name}</span>
             </Link>
           );
         })}
