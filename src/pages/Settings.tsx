@@ -51,7 +51,7 @@ export const Settings: React.FC = () => {
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
 
   // Dynamic Fetched Models State
-  const [fetchedGeminiModels, setFetchedGeminiModels] = useState<string[]>(['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']);
+  const [fetchedGeminiModels, setFetchedGeminiModels] = useState<string[]>(['gemini-3.1-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']);
   const [fetchedOpenaiModels, setFetchedOpenaiModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState<boolean>(false);
 
