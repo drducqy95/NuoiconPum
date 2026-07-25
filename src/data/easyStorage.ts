@@ -1,5 +1,6 @@
 import localforage from 'localforage';
 import { localDiaryApi } from './localDiaryApi';
+import { FORMULA_DATABASE } from './formulaDatabase';
 
 export type EasyPresetId = 'easy3' | 'easy35' | 'easy345' | 'easy4' | 'easy234' | 'easy56' | 'custom';
 
@@ -70,6 +71,8 @@ export interface EasyDayLog {
   nightFeedCount?: number | null;
   nightMilkVolumeMl?: number | null;
   nightMilkType?: 'breast' | 'formula' | 'mixed';
+  nightFormulaBrandId?: string | null;
+  nightFormulaBrandName?: string | null;
   nightWetDiaper?: boolean;
   nightDirtyDiaper?: boolean;
   nightWakeCount?: number | null;
@@ -201,7 +204,7 @@ export function getMinutesBetweenTimes(startStr: string, endStr: string): number
   const [h2, m2] = endStr.split(':').map(Number);
   if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 60;
   let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-  if (diff <= 0) diff += 24 * 60; // Next day fallback
+  if (diff < 0) diff += 24 * 60; // Next day fallback
   return diff;
 }
 
@@ -211,7 +214,7 @@ export function getSafeDurationMinutes(startStr: string, endStr: string, fallbac
     return fallbackMins;
   }
   const diff = getMinutesBetweenTimes(startStr, endStr);
-  if (diff <= 0 || diff > 480) {
+  if (diff < 0 || diff > 480) {
     return fallbackMins;
   }
   return diff;
@@ -322,10 +325,19 @@ export function generateDefaultDayLog(
   let currentTime = isValidTimeStr(morningWakeTime) ? morningWakeTime : preset.morningWake;
 
   const cycles: EasyCycleLog[] = cycleConfigs.map((c) => {
+    let cWakeDuration = c.wakeDurationMinutes;
+    let cSleepDuration = c.sleepDurationMinutes;
+
+    // RULE: Cữ cuối cùng (last cycle) luôn là "Chỉ thức" (No NAP)
+    const isLastCycle = cycleConfigs.length - 1;
+    if (cycleConfigs.indexOf(c) === isLastCycle) {
+      cSleepDuration = 0;
+    }
+
     const eatStartTime = currentTime;
-    const eatEndTime = addMinutesToTime(eatStartTime, c.wakeDurationMinutes);
+    const eatEndTime = addMinutesToTime(eatStartTime, cWakeDuration);
     const sleepStartTime = eatEndTime;
-    const sleepEndTime = addMinutesToTime(sleepStartTime, c.sleepDurationMinutes);
+    const sleepEndTime = addMinutesToTime(sleepStartTime, cSleepDuration);
 
     currentTime = sleepEndTime;
 
@@ -367,6 +379,8 @@ export function generateDefaultDayLog(
     nightFeedCount: existingLog?.nightFeedCount ?? 1,
     nightMilkVolumeMl: existingLog?.nightMilkVolumeMl ?? null,
     nightMilkType: existingLog?.nightMilkType ?? 'breast',
+    nightFormulaBrandId: existingLog?.nightFormulaBrandId ?? null,
+    nightFormulaBrandName: existingLog?.nightFormulaBrandName ?? null,
     nightWetDiaper: existingLog?.nightWetDiaper ?? true,
     nightDirtyDiaper: existingLog?.nightDirtyDiaper ?? false,
     nightWakeCount: existingLog?.nightWakeCount ?? 1,
@@ -526,6 +540,70 @@ export function getDayTotalMilk(dayLog: EasyDayLog): {
     formulaMilkTotal,
     nightMilk,
     grandTotal
+  };
+}
+
+// Tính tổng dinh dưỡng cả ngày dựa trên lượng sữa công thức đã chọn
+export interface NutritionSummary {
+  energyKcal: number;
+  proteinG: number;
+  fatG: number;
+  carbG: number;
+  calciumMg: number;
+  ironMg: number;
+  zincMg: number;
+  dhaMg: number;
+}
+
+export function getDayTotalNutrition(dayLog: EasyDayLog): NutritionSummary {
+  let energyKcal = 0;
+  let proteinG = 0;
+  let fatG = 0;
+  let carbG = 0;
+  let calciumMg = 0;
+  let ironMg = 0;
+  let zincMg = 0;
+  let dhaMg = 0;
+
+  const addNutrition = (volumeMl: number, brandId: string) => {
+    if (volumeMl <= 0 || !brandId) return;
+    const formula = FORMULA_DATABASE.find(f => f.id === brandId);
+    if (!formula) return;
+    
+    const ratio = volumeMl / 100; // CSDL lưu trữ dinh dưỡng trên 100ml
+    const nut = formula.nutrientsPer100ml;
+
+    energyKcal += (nut.energyKcal || 0) * ratio;
+    proteinG += (nut.proteinG || 0) * ratio;
+    fatG += (nut.fatG || 0) * ratio;
+    carbG += (nut.carbG || 0) * ratio;
+    calciumMg += (nut.calciumMg || 0) * ratio;
+    ironMg += (nut.ironMg || 0) * ratio;
+    zincMg += (nut.zincMg || 0) * ratio;
+    dhaMg += (nut.dhaMg || 0) * ratio;
+  };
+
+  // Các cữ ngày
+  dayLog.cycles.forEach(c => {
+    if (c.bottleMilkType === 'formula' && c.bottleMilkVolumeMl && c.formulaBrandId) {
+      addNutrition(c.bottleMilkVolumeMl, c.formulaBrandId);
+    }
+  });
+
+  // Cữ đêm
+  if (dayLog.nightMilkType === 'formula' && dayLog.nightMilkVolumeMl && dayLog.nightFormulaBrandId) {
+    addNutrition(dayLog.nightMilkVolumeMl, dayLog.nightFormulaBrandId);
+  }
+
+  return {
+    energyKcal: Math.round(energyKcal),
+    proteinG: Number(proteinG.toFixed(1)),
+    fatG: Number(fatG.toFixed(1)),
+    carbG: Number(carbG.toFixed(1)),
+    calciumMg: Math.round(calciumMg),
+    ironMg: Number(ironMg.toFixed(2)),
+    zincMg: Number(zincMg.toFixed(2)),
+    dhaMg: Number(dhaMg.toFixed(1)),
   };
 }
 

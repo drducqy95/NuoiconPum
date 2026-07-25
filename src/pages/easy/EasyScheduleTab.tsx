@@ -16,7 +16,9 @@ import {
   getDayTotalDurations,
   getActiveConfig,
   saveActiveConfig,
-  easyStorage
+  easyStorage,
+  getDayTotalNutrition,
+  NutritionSummary
 } from '../../data/easyStorage';
 import { FORMULA_DATABASE } from '../../data/formulaDatabase';
 import { PrintableEasyReport } from '../../components/PrintableEasyReport';
@@ -61,6 +63,9 @@ export const EasyScheduleTab: React.FC = () => {
   const [customWakeMins, setCustomWakeMins] = useState(90);
   const [customSleepMins, setCustomSleepMins] = useState(120);
   const [customSkipNap4, setCustomSkipNap4] = useState(false);
+
+  // Expand/Collapse Stats State
+  const [showStats, setShowStats] = useState(true);
 
   // Print / Export PDF ref
   const printRef = useRef<HTMLDivElement>(null);
@@ -259,8 +264,37 @@ export const EasyScheduleTab: React.FC = () => {
     }
   };
 
+  const handleAddNewCycle = () => {
+    if (!dayLog) return;
+    
+    // Find the last cycle to determine the start time for the new one
+    const lastCycle = dayLog.cycles[dayLog.cycles.length - 1];
+    
+    // New cycle starts exactly when the last one's "sleepEndTime" was (which is technically just eatEndTime if sleep is 0)
+    const newEatStartTime = lastCycle ? lastCycle.sleepEndTime : dayLog.morningWakeTime;
+    
+    const newEatEndTime = addMinutesToTime(newEatStartTime, 90); // default 90 mins wake
+    const newSleepStartTime = newEatEndTime;
+    const newSleepEndTime = newSleepStartTime; // default to 0 mins sleep (Chỉ thức)
+
+    const newCycle: EasyCycleLog = {
+      cycleId: dayLog.cycles.length + 1,
+      cycleName: `Cữ ${dayLog.cycles.length + 1}`,
+      eatStartTime: newEatStartTime,
+      eatEndTime: newEatEndTime,
+      sleepStartTime: newSleepStartTime,
+      sleepEndTime: newSleepEndTime,
+    };
+    
+    const updatedCycles = [...dayLog.cycles, newCycle];
+    const updatedDayLog = { ...dayLog, cycles: updatedCycles, bedtimeStart: newSleepEndTime };
+    setDayLog(updatedDayLog);
+    easyStorage.saveDayLog(updatedDayLog);
+  };
+
   const currentPresetInfo = EASY_PRESETS[selectedPreset] || EASY_PRESETS.easy3;
   const milkSummary = dayLog ? getDayTotalMilk(dayLog) : { daytimeMilk: 0, breastMilkTotal: 0, formulaMilkTotal: 0, nightMilk: 0, grandTotal: 0 };
+  const nutritionSummary = dayLog ? getDayTotalNutrition(dayLog) : null;
   const durationStats = dayLog ? getDayTotalDurations(dayLog) : null;
 
   return (
@@ -387,71 +421,97 @@ export const EasyScheduleTab: React.FC = () => {
         </div>
       )}
 
-      {/* Daily Summary Stat Cards (Milk & Wake/Sleep Durations) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Sữa Mẹ</span>
-          <div className="text-base font-black text-rose-600 flex items-center">
-            <Heart className="w-3.5 h-3.5 text-rose-500 mr-1" />
-            <span>{milkSummary.breastMilkTotal} ml</span>
-          </div>
-          <span className="text-[10px] text-gray-500 block">Sữa mẹ ước lượng + bình</span>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase block">Sữa Công Thức</span>
-          <div className="text-base font-black text-amber-600 flex items-center">
-            <Milk className="w-3.5 h-3.5 text-amber-500 mr-1" />
-            <span>{milkSummary.formulaMilkTotal} ml</span>
-          </div>
-          <span className="text-[10px] text-gray-500 block">Sữa công thức bình</span>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Lượng Sữa</span>
-          <div className="text-base font-black text-indigo-600 flex items-center">
-            <Baby className="w-3.5 h-3.5 text-indigo-500 mr-1" />
-            <span>{milkSummary.grandTotal} ml</span>
-          </div>
-          <span className="text-[10px] text-gray-500 block">Ngày: {milkSummary.daytimeMilk}ml | Đêm: {milkSummary.nightMilk}ml</span>
-        </div>
-
-        {/* Duration Stats: Total Wake */}
-        <div className="bg-white rounded-2xl border border-amber-200/90 bg-amber-50/20 p-3 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-amber-900 uppercase block flex items-center">
-            <Sun className="w-3 h-3 text-amber-600 mr-1" />
-            Thời Gian Thức
-          </span>
-          <div className="text-base font-black text-amber-900">
-            <span>{durationStats?.totalWakeStr || '0h'}</span>
-          </div>
-          <span className="text-[10px] text-amber-800/80 block">Ban ngày: {durationStats?.dayWakeStr}</span>
-        </div>
-
-        {/* Duration Stats: Total Sleep */}
-        <div className="bg-white rounded-2xl border border-indigo-200/90 bg-indigo-50/20 p-3 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-indigo-900 uppercase block flex items-center">
-            <Bed className="w-3 h-3 text-indigo-600 mr-1" />
-            Thời Gian Ngủ
-          </span>
-          <div className="text-base font-black text-indigo-900">
-            <span>{durationStats?.totalSleepStr || '0h'}</span>
-          </div>
-          <span className="text-[10px] text-indigo-800/80 block">Ngày: {durationStats?.daySleepStr} | Đêm: {durationStats?.nightSleepStr}</span>
-        </div>
-
-        {/* Night Sleep Quality badge */}
-        <div className="bg-white rounded-2xl border border-purple-200/90 bg-purple-50/20 p-3 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-purple-900 uppercase block flex items-center">
-            <Moon className="w-3 h-3 text-purple-600 mr-1" />
-            Giấc Ngủ Đêm
-          </span>
-          <div className="text-base font-black text-purple-950 flex items-center space-x-1">
-            <span>{dayLog?.nightSleepQuality ? '⭐'.repeat(dayLog.nightSleepQuality) : 'Tốt'}</span>
-          </div>
-          <span className="text-[10px] text-purple-800/80 block">Dậy đêm: {dayLog?.nightWakeCount ?? 0} lần</span>
-        </div>
+      {/* Toggle Stats Button */}
+      <div className="flex justify-between items-center px-1">
+        <h3 className="text-sm font-extrabold text-gray-800">Thống Kê Nhanh Trong Ngày</h3>
+        <button 
+          onClick={() => setShowStats(!showStats)} 
+          className="text-xs font-bold text-indigo-600 flex items-center space-x-1 cursor-pointer hover:bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
+        >
+          <span>{showStats ? 'Thu gọn' : 'Mở rộng'}</span>
+          {showStats ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
       </div>
+
+      {/* Daily Summary Stat Cards (Milk, Nutrition & Wake/Sleep Durations) */}
+      {showStats && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 animate-fade-in">
+          {/* Nutrition Card - HIGHTLIGHTED */}
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 p-3 rounded-2xl shadow-2xs space-y-2 col-span-2 sm:col-span-3 lg:col-span-2">
+            <span className="text-[10px] font-extrabold text-amber-900 uppercase flex items-center">
+              <Sparkles className="w-3 h-3 text-amber-600 mr-1" />
+              Tổng Dinh Dưỡng Nạp
+            </span>
+            <div className="flex items-end space-x-1">
+              <span className="text-2xl font-black text-amber-600 leading-none">{nutritionSummary?.energyKcal || 0}</span>
+              <span className="text-xs font-bold text-amber-700 pb-0.5">Kcal</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1 border-t border-amber-200/60 text-[10px] text-amber-900">
+              <div className="flex justify-between"><span>Đạm:</span> <span className="font-bold">{nutritionSummary?.proteinG || 0}g</span></div>
+              <div className="flex justify-between"><span>Béo:</span> <span className="font-bold">{nutritionSummary?.fatG || 0}g</span></div>
+              <div className="flex justify-between"><span>Canxi:</span> <span className="font-bold">{nutritionSummary?.calciumMg || 0}mg</span></div>
+              <div className="flex justify-between"><span>DHA:</span> <span className="font-bold">{nutritionSummary?.dhaMg || 0}mg</span></div>
+              <div className="flex justify-between"><span>Sắt:</span> <span className="font-bold">{nutritionSummary?.ironMg || 0}mg</span></div>
+              <div className="flex justify-between"><span>Kẽm:</span> <span className="font-bold">{nutritionSummary?.zincMg || 0}mg</span></div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Lượng Sữa</span>
+            <div className="text-base font-black text-indigo-600 flex items-center">
+              <Baby className="w-3.5 h-3.5 text-indigo-500 mr-1" />
+              <span>{milkSummary.grandTotal} ml</span>
+            </div>
+            <span className="text-[10px] text-gray-500 block">Ngày: {milkSummary.daytimeMilk}ml | Đêm: {milkSummary.nightMilk}ml</span>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs space-y-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase block">Tổng Sữa Mẹ</span>
+            <div className="text-base font-black text-rose-600 flex items-center">
+              <Heart className="w-3.5 h-3.5 text-rose-500 mr-1" />
+              <span>{milkSummary.breastMilkTotal} ml</span>
+            </div>
+            <span className="text-[10px] text-gray-500 block">Sữa mẹ trực tiếp + vắt bình</span>
+          </div>
+
+          {/* Duration Stats: Total Wake */}
+          <div className="bg-white rounded-2xl border border-amber-200/90 bg-amber-50/20 p-3 shadow-2xs space-y-1">
+            <span className="text-[10px] font-bold text-amber-900 uppercase block flex items-center">
+              <Sun className="w-3 h-3 text-amber-600 mr-1" />
+              Thời Gian Thức
+            </span>
+            <div className="text-base font-black text-amber-900">
+              <span>{durationStats?.totalWakeStr || '0h'}</span>
+            </div>
+            <span className="text-[10px] text-amber-800/80 block">Ban ngày: {durationStats?.dayWakeStr}</span>
+          </div>
+
+          {/* Duration Stats: Total Sleep */}
+          <div className="bg-white rounded-2xl border border-indigo-200/90 bg-indigo-50/20 p-3 shadow-2xs space-y-1">
+            <span className="text-[10px] font-bold text-indigo-900 uppercase block flex items-center">
+              <Bed className="w-3 h-3 text-indigo-600 mr-1" />
+              Thời Gian Ngủ
+            </span>
+            <div className="text-base font-black text-indigo-900">
+              <span>{durationStats?.totalSleepStr || '0h'}</span>
+            </div>
+            <span className="text-[10px] text-indigo-800/80 block">Ngày: {durationStats?.daySleepStr} | Đêm: {durationStats?.nightSleepStr}</span>
+          </div>
+
+          {/* Night Sleep Quality badge */}
+          <div className="bg-white rounded-2xl border border-purple-200/90 bg-purple-50/20 p-3 shadow-2xs space-y-1">
+            <span className="text-[10px] font-bold text-purple-900 uppercase block flex items-center">
+              <Moon className="w-3 h-3 text-purple-600 mr-1" />
+              Giấc Ngủ Đêm
+            </span>
+            <div className="text-base font-black text-purple-950 flex items-center space-x-1">
+              <span>{dayLog?.nightSleepQuality ? '⭐'.repeat(dayLog.nightSleepQuality) : 'Tốt'}</span>
+            </div>
+            <span className="text-[10px] text-purple-800/80 block">Dậy đêm: {dayLog?.nightWakeCount ?? 0} lần</span>
+          </div>
+        </div>
+      )}
 
       {/* Main Cycles Timeline List */}
       {dayLog && (
@@ -491,8 +551,8 @@ export const EasyScheduleTab: React.FC = () => {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      {/* Skip Nap 4 / No-Nap Toggle Button */}
-                      {(index === dayLog.cycles.length - 1 || index === 3) && (
+                      {/* Skip Nap 4 / No-Nap Toggle Button - now only show if not the very last cycle */}
+                      {index !== dayLog.cycles.length - 1 && index >= 3 && (
                         <button
                           type="button"
                           onClick={() => handleToggleSkipNap(index)}
@@ -503,8 +563,15 @@ export const EasyScheduleTab: React.FC = () => {
                           }`}
                           title="Bấm để bật/tắt bỏ giấc ngủ ngắn cữ này"
                         >
-                          {isNapSkipped ? '⚡ Đã bỏ Nap (Chỉ Thức)' : '🚫 Bỏ Nap 4'}
+                          {isNapSkipped ? '⚡ Đã bỏ Nap' : '🚫 Bỏ Nap'}
                         </button>
+                      )}
+
+                      {/* Display explicit visual for last cycle */}
+                      {index === dayLog.cycles.length - 1 && (
+                        <span className="bg-purple-100 text-purple-800 border border-purple-300 px-2 py-1 rounded-lg text-[10px] font-extrabold">
+                          Cữ Cuối: Chỉ Thức
+                        </span>
                       )}
 
                       <button
@@ -557,15 +624,17 @@ export const EasyScheduleTab: React.FC = () => {
                           <input
                             type="time"
                             value={cycle.sleepStartTime}
+                            disabled={index === dayLog.cycles.length - 1} // Khóa cữ cuối
                             onChange={(e) => handleCycleSleepStartTimeChange(index, e.target.value)}
-                            className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none"
+                            className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none disabled:opacity-60 disabled:bg-gray-100"
                           />
                           <span className="text-gray-400">➔</span>
                           <input
                             type="time"
                             value={cycle.sleepEndTime}
+                            disabled={index === dayLog.cycles.length - 1} // Khóa cữ cuối
                             onChange={(e) => handleCycleSleepEndTimeChange(index, e.target.value)}
-                            className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none"
+                            className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none disabled:opacity-60 disabled:bg-gray-100"
                           />
                         </div>
                       </div>
@@ -796,6 +865,15 @@ export const EasyScheduleTab: React.FC = () => {
             })}
           </div>
 
+          <div className="flex justify-center mt-2 pb-4">
+            <button 
+              onClick={handleAddNewCycle}
+              className="flex items-center space-x-1 px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 font-bold rounded-xl text-xs transition-colors shadow-xs"
+            >
+              <span className="text-lg leading-none mb-0.5">+</span> <span>Thêm Cữ Mới (Linh động)</span>
+            </button>
+          </div>
+
           {/* NIGHT SLEEP & DIAPERS SECTION */}
           <div className="bg-gradient-to-r from-indigo-950 via-purple-950 to-indigo-950 rounded-2xl p-5 text-white shadow-md space-y-4 border border-indigo-800">
             <div className="flex items-center space-x-2 border-b border-indigo-800/80 pb-3">
@@ -849,6 +927,37 @@ export const EasyScheduleTab: React.FC = () => {
                     className="bg-indigo-950 border border-indigo-700 rounded px-2 py-1 text-xs font-bold text-amber-300"
                   />
                 </div>
+                {dayLog.nightFeedCount && dayLog.nightFeedCount > 0 ? (
+                  <div className="pt-1 border-t border-indigo-800/80">
+                    <select
+                      value={dayLog.nightMilkType || 'breast'}
+                      onChange={(e) => handleUpdateNightLog({ nightMilkType: e.target.value as any })}
+                      className="w-full mb-1 bg-indigo-950 border border-indigo-700 rounded px-2 py-1 text-xs font-bold text-indigo-100 focus:outline-none"
+                    >
+                      <option value="breast">Sữa Mẹ</option>
+                      <option value="formula">Công Thức</option>
+                    </select>
+                    {dayLog.nightMilkType === 'formula' && (
+                      <select
+                        value={dayLog.nightFormulaBrandId || ''}
+                        onChange={(e) => {
+                          const bId = e.target.value;
+                          const found = FORMULA_DATABASE.find(f => f.id === bId);
+                          handleUpdateNightLog({
+                            nightFormulaBrandId: bId || null,
+                            nightFormulaBrandName: found ? found.name : null
+                          });
+                        }}
+                        className="w-full bg-indigo-950 border border-amber-700/50 rounded px-2 py-1 text-[10px] text-amber-200 focus:outline-none"
+                      >
+                        <option value="">- Chọn Sữa CT -</option>
+                        {FORMULA_DATABASE.map(f => (
+                          <option key={f.id} value={f.id}>{f.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               {/* 4. Night Sleep Quality */}
