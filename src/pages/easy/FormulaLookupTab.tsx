@@ -10,10 +10,12 @@ import {
   ChevronUp
 } from 'lucide-react';
 import {
-  FORMULA_DATABASE,
+  fetchFormulaDatabase,
   searchFormulaBrands,
-  calculateDailyNutrients
+  calculateDailyNutrients,
+  FormulaBrand
 } from '../../data/formulaDatabase';
+import { useEffect } from 'react';
 import { EasyDayLog, getDayTotalMilk } from '../../data/easyStorage';
 
 interface FormulaLookupTabProps {
@@ -25,13 +27,20 @@ export const FormulaLookupTab: React.FC<FormulaLookupTabProps> = ({ dayLog }) =>
   const [formulaStageFilter, setFormulaStageFilter] = useState<string>('all');
   const [selectedFormulaIdForCalc, setSelectedFormulaIdForCalc] = useState<string>('aptamil-profutura-1');
   const [expandedFormulaId, setExpandedFormulaId] = useState<string | null>(null);
+  const [formulaDatabase, setFormulaDatabase] = useState<FormulaBrand[]>([]);
+  useEffect(() => {
+    fetchFormulaDatabase().then(data => setFormulaDatabase(data));
+  }, []);
+
+  if (formulaDatabase.length === 0) return <div className="p-4 text-center">Đang tải dữ liệu...</div>;
+  
 
   const milkStats = dayLog ? getDayTotalMilk(dayLog) : { formulaMilkTotal: 0, grandTotal: 0 };
   const currentFormulaMl = milkStats.formulaMilkTotal || milkStats.grandTotal || 0;
-  const selectedBrand = FORMULA_DATABASE.find(b => b.id === selectedFormulaIdForCalc) || FORMULA_DATABASE[0];
+  const selectedBrand = formulaDatabase.find(b => b.id === selectedFormulaIdForCalc) || formulaDatabase[0];
   const intakeCalc = calculateDailyNutrients(selectedBrand, currentFormulaMl > 0 ? currentFormulaMl : 500);
 
-  const brands = searchFormulaBrands(formulaSearch, formulaStageFilter);
+  const brands = searchFormulaBrands(formulaDatabase, formulaSearch, formulaStageFilter);
 
   return (
     <div className="space-y-6">
@@ -91,7 +100,7 @@ export const FormulaLookupTab: React.FC<FormulaLookupTabProps> = ({ dayLog }) =>
               onChange={(e) => setSelectedFormulaIdForCalc(e.target.value)}
               className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-gray-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
             >
-              {FORMULA_DATABASE.map((b) => (
+              {formulaDatabase.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name} ({b.brand} - {b.originCountry})
                 </option>

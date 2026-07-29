@@ -1,6 +1,6 @@
 import localforage from 'localforage';
 import { localDiaryApi } from './localDiaryApi';
-import { FORMULA_DATABASE } from './formulaDatabase';
+import { FormulaBrand } from './formulaDatabase';
 
 export type EasyPresetId = 'easy3' | 'easy35' | 'easy345' | 'easy4' | 'easy234' | 'easy56' | 'custom';
 
@@ -61,6 +61,18 @@ export interface EasyCycleLog {
   sleptWellRating?: 1 | 2 | 3 | 4 | 5; // 1 to 5 stars
 }
 
+// Chi tiết từng cữ bú đêm
+export interface NightFeedEntry {
+  id: number;
+  time: string;           // "02:30"
+  milkVolumeMl: number;   // ml
+  milkType: 'breast' | 'formula';
+  formulaBrandId?: string | null;
+  formulaBrandName?: string | null;
+  durationMinutes?: number; // Thời gian bú (phút)
+  notes?: string;
+}
+
 export interface EasyDayLog {
   dateStr: string; // "YYYY-MM-DD"
   presetId: EasyPresetId;
@@ -73,11 +85,20 @@ export interface EasyDayLog {
   nightMilkType?: 'breast' | 'formula' | 'mixed';
   nightFormulaBrandId?: string | null;
   nightFormulaBrandName?: string | null;
+
+  // Night diaper counts (primary — backward compat: read boolean if count missing)
+  nightWetDiaperCount?: number;
+  nightDirtyDiaperCount?: number;
+  // Legacy boolean (backward compat)
   nightWetDiaper?: boolean;
   nightDirtyDiaper?: boolean;
+
   nightWakeCount?: number | null;
   nightSleepQuality?: 1 | 2 | 3 | 4 | 5;
   nightNotes?: string;
+
+  // Chi tiết từng cữ bú đêm (nâng cao, toggle)
+  nightFeeds?: NightFeedEntry[];
 
   generalNotes?: string;
   updatedAt: number;
@@ -225,6 +246,7 @@ export interface EasyActiveConfig {
   presetId: EasyPresetId;
   morningWakeTime: string;
   customCycles?: EasyCycleConfig[];
+  bedtimeTarget?: string; // Giờ ngủ đêm mục tiêu (nếu custom)
 }
 
 export function saveActiveConfig(config: EasyActiveConfig): void {
@@ -306,6 +328,45 @@ export function getDayTotalDurations(dayLog: EasyDayLog): {
   };
 }
 
+// Helper: Tổng hợp tã cả ngày + đêm
+export function getDayTotalDiapers(dayLog: EasyDayLog): {
+  dayWet: number;
+  dayDirty: number;
+  nightWet: number;
+  nightDirty: number;
+  totalWet: number;
+  totalDirty: number;
+  grandTotalDiapers: number;
+} {
+  let dayWet = 0;
+  let dayDirty = 0;
+
+  dayLog.cycles.forEach((c) => {
+    if (c.wetDiaperCount) dayWet += c.wetDiaperCount;
+    else if (c.wetDiaper) dayWet += 1;
+
+    if (c.dirtyDiaperCount) dayDirty += c.dirtyDiaperCount;
+    else if (c.dirtyDiaper) dayDirty += 1;
+  });
+
+  // Night diapers: dùng count nếu có, fallback boolean = 1
+  const nightWet = dayLog.nightWetDiaperCount ?? (dayLog.nightWetDiaper ? 1 : 0);
+  const nightDirty = dayLog.nightDirtyDiaperCount ?? (dayLog.nightDirtyDiaper ? 1 : 0);
+
+  const totalWet = dayWet + nightWet;
+  const totalDirty = dayDirty + nightDirty;
+
+  return {
+    dayWet,
+    dayDirty,
+    nightWet,
+    nightDirty,
+    totalWet,
+    totalDirty,
+    grandTotalDiapers: totalWet + totalDirty,
+  };
+}
+
 // Generate default cycles log given preset and start wake time (preserves existing night notes if provided)
 export function generateDefaultDayLog(
   presetId: EasyPresetId,
@@ -324,13 +385,13 @@ export function generateDefaultDayLog(
 
   let currentTime = isValidTimeStr(morningWakeTime) ? morningWakeTime : preset.morningWake;
 
-  const cycles: EasyCycleLog[] = cycleConfigs.map((c) => {
+  const cycles: EasyCycleLog[] = cycleConfigs.map((c, idx) => {
     let cWakeDuration = c.wakeDurationMinutes;
     let cSleepDuration = c.sleepDurationMinutes;
 
-    // RULE: Cữ cuối cùng (last cycle) luôn là "Chỉ thức" (No NAP)
-    const isLastCycle = cycleConfigs.length - 1;
-    if (cycleConfigs.indexOf(c) === isLastCycle) {
+    // RULE: Luôn vô hiệu hoá thời gian ngủ ngắn của cữ cuối cùng.
+    // Cữ cuối sau khi thức xong sẽ bắt đầu ngủ đêm.
+    if (idx === cycleConfigs.length - 1) {
       cSleepDuration = 0;
     }
 
@@ -381,8 +442,11 @@ export function generateDefaultDayLog(
     nightMilkType: existingLog?.nightMilkType ?? 'breast',
     nightFormulaBrandId: existingLog?.nightFormulaBrandId ?? null,
     nightFormulaBrandName: existingLog?.nightFormulaBrandName ?? null,
+    nightWetDiaperCount: existingLog?.nightWetDiaperCount ?? 0,
+    nightDirtyDiaperCount: existingLog?.nightDirtyDiaperCount ?? 0,
     nightWetDiaper: existingLog?.nightWetDiaper ?? true,
     nightDirtyDiaper: existingLog?.nightDirtyDiaper ?? false,
+    nightFeeds: existingLog?.nightFeeds ?? [],
     nightWakeCount: existingLog?.nightWakeCount ?? 1,
     nightSleepQuality: existingLog?.nightSleepQuality ?? 5,
     nightNotes: existingLog?.nightNotes ?? '',
@@ -426,6 +490,12 @@ export function generateCustomDayLog(
 export function cascadeRecalculateCycles(dayLog: EasyDayLog, updatedCycleIndex: number, newCycleLog: EasyCycleLog): EasyDayLog {
   const preset = EASY_PRESETS[dayLog.presetId] || EASY_PRESETS.easy3;
   const newCycles = [...dayLog.cycles];
+  
+  // RULE: Luôn vô hiệu hoá thời gian ngủ ngắn của cữ cuối cùng.
+  if (updatedCycleIndex === newCycles.length - 1) {
+    newCycleLog.sleepStartTime = newCycleLog.eatEndTime;
+    newCycleLog.sleepEndTime = newCycleLog.eatEndTime;
+  }
   newCycles[updatedCycleIndex] = newCycleLog;
 
   // Cascade recalculate all subsequent cycles starting from updatedCycleIndex + 1
@@ -440,7 +510,12 @@ export function cascadeRecalculateCycles(dayLog: EasyDayLog, updatedCycleIndex: 
 
     // Calculate original duration of wake & sleep
     const wakeDuration = getSafeDurationMinutes(orig.eatStartTime, orig.eatEndTime, defaultWake);
-    const sleepDuration = getSafeDurationMinutes(orig.sleepStartTime, orig.sleepEndTime, defaultSleep);
+    let sleepDuration = getSafeDurationMinutes(orig.sleepStartTime, orig.sleepEndTime, defaultSleep);
+    
+    // RULE: Cữ cuối sau khi thức xong sẽ bắt đầu ngủ đêm.
+    if (i === newCycles.length - 1) {
+      sleepDuration = 0;
+    }
 
     const eatStartTime = currentStartTime;
     const eatEndTime = addMinutesToTime(eatStartTime, wakeDuration);
@@ -525,11 +600,24 @@ export function getDayTotalMilk(dayLog: EasyDayLog): {
     }
   });
 
-  const nightMilk = dayLog.nightMilkVolumeMl || 0;
-  if (dayLog.nightMilkType === 'formula') {
-    formulaMilkTotal += nightMilk;
+  // Night milk: tính từ nightFeeds[] chi tiết nếu có, fallback nightMilkVolumeMl
+  let nightMilk = 0;
+  if (dayLog.nightFeeds && dayLog.nightFeeds.length > 0) {
+    dayLog.nightFeeds.forEach(nf => {
+      nightMilk += nf.milkVolumeMl || 0;
+      if (nf.milkType === 'formula') {
+        formulaMilkTotal += nf.milkVolumeMl || 0;
+      } else {
+        breastMilkTotal += nf.milkVolumeMl || 0;
+      }
+    });
   } else {
-    breastMilkTotal += nightMilk;
+    nightMilk = dayLog.nightMilkVolumeMl || 0;
+    if (dayLog.nightMilkType === 'formula') {
+      formulaMilkTotal += nightMilk;
+    } else {
+      breastMilkTotal += nightMilk;
+    }
   }
 
   const grandTotal = daytimeMilk + nightMilk;
@@ -555,7 +643,7 @@ export interface NutritionSummary {
   dhaMg: number;
 }
 
-export function getDayTotalNutrition(dayLog: EasyDayLog): NutritionSummary {
+export function getDayTotalNutrition(dayLog: EasyDayLog, formulaDatabase: FormulaBrand[]): NutritionSummary {
   let energyKcal = 0;
   let proteinG = 0;
   let fatG = 0;
@@ -567,7 +655,7 @@ export function getDayTotalNutrition(dayLog: EasyDayLog): NutritionSummary {
 
   const addNutrition = (volumeMl: number, brandId: string) => {
     if (volumeMl <= 0 || !brandId) return;
-    const formula = FORMULA_DATABASE.find(f => f.id === brandId);
+    const formula = formulaDatabase.find(f => f.id === brandId);
     if (!formula) return;
     
     const ratio = volumeMl / 100; // CSDL lưu trữ dinh dưỡng trên 100ml
@@ -590,8 +678,14 @@ export function getDayTotalNutrition(dayLog: EasyDayLog): NutritionSummary {
     }
   });
 
-  // Cữ đêm
-  if (dayLog.nightMilkType === 'formula' && dayLog.nightMilkVolumeMl && dayLog.nightFormulaBrandId) {
+  // Cữ đêm: tính từ nightFeeds[] chi tiết nếu có, fallback legacy
+  if (dayLog.nightFeeds && dayLog.nightFeeds.length > 0) {
+    dayLog.nightFeeds.forEach(nf => {
+      if (nf.milkType === 'formula' && nf.milkVolumeMl && nf.formulaBrandId) {
+        addNutrition(nf.milkVolumeMl, nf.formulaBrandId);
+      }
+    });
+  } else if (dayLog.nightMilkType === 'formula' && dayLog.nightMilkVolumeMl && dayLog.nightFormulaBrandId) {
     addNutrition(dayLog.nightMilkVolumeMl, dayLog.nightFormulaBrandId);
   }
 
@@ -623,19 +717,11 @@ export const easyStorage = {
     // Generate clean markdown or structured text summarizing EASY day
     const preset = EASY_PRESETS[dayLog.presetId] || EASY_PRESETS.easy3;
     
-    // Calculate total milk and diapers using stats helper
+    // Calculate total milk and diapers using stats helpers
     const milkStats = getDayTotalMilk(dayLog);
-    let totalWet = 0;
-    let totalDirty = 0;
+    const diaperStats = getDayTotalDiapers(dayLog);
 
     const cycleDetailsText = dayLog.cycles.map((c) => {
-      // Accumulate diapers count
-      if (c.wetDiaperCount) totalWet += c.wetDiaperCount;
-      else if (c.wetDiaper) totalWet += 1;
-
-      if (c.dirtyDiaperCount) totalDirty += c.dirtyDiaperCount;
-      else if (c.dirtyDiaper) totalDirty += 1;
-
       const cycleMilkTotal = getCycleTotalMilk(c);
       const feedParts: string[] = [];
 
@@ -678,20 +764,26 @@ export const easyStorage = {
 ${c.notes ? `- 📝 *Ghi chú:* ${c.notes}` : ''}`;
     }).join('\n\n');
 
-    if (dayLog.nightWetDiaper) totalWet += 1;
-    if (dayLog.nightDirtyDiaper) totalDirty += 1;
+    // Night feeds detail text
+    let nightFeedsText = '';
+    if (dayLog.nightFeeds && dayLog.nightFeeds.length > 0) {
+      nightFeedsText = dayLog.nightFeeds.map((nf, i) => {
+        const typeLabel = nf.milkType === 'formula' ? `Sữa CT${nf.formulaBrandName ? ` (${nf.formulaBrandName})` : ''}` : 'Sữa mẹ';
+        return `  ${i + 1}. ⏰ ${nf.time} — ${nf.milkVolumeMl}ml (${typeLabel})${nf.durationMinutes ? ` - ${nf.durationMinutes}p` : ''}${nf.notes ? ` — ${nf.notes}` : ''}`;
+      }).join('\n');
+    }
 
     const nightSummaryText = `🌙 **Trình tự & Giấc ngủ đêm (Bắt đầu từ ${dayLog.bedtimeStart}):**
 - 🛌 **Chất lượng ngủ đêm:** ${dayLog.nightSleepQuality ? '⭐'.repeat(dayLog.nightSleepQuality) : 'Tốt'}
-- 🍼 **Cữ bú đêm:** ${dayLog.nightFeedCount ?? 0} cữ ${dayLog.nightMilkVolumeMl ? `(Tổng ${dayLog.nightMilkVolumeMl}ml)` : ''}
-- ⏰ **Số lần bé dậy đêm:** ${dayLog.nightWakeCount ?? 0} lần
-- 👶 **Tã đêm:** ${dayLog.nightWetDiaper ? 'Tã ướt' : ''} ${dayLog.nightDirtyDiaper ? 'Tã dơ' : ''}
+- 🍼 **Cữ bú đêm:** ${dayLog.nightFeedCount ?? 0} cữ (Tổng ${milkStats.nightMilk}ml)
+${nightFeedsText ? `${nightFeedsText}\n` : ''}- ⏰ **Số lần bé dậy đêm:** ${dayLog.nightWakeCount ?? 0} lần
+- 👶 **Tã đêm:** 💦 ${diaperStats.nightWet} ướt, 💩 ${diaperStats.nightDirty} dơ
 ${dayLog.nightNotes ? `- 📝 *Ghi chú cữ đêm:* ${dayLog.nightNotes}` : ''}`;
 
     const title = `Lịch EASY ${preset.name} - Ngày ${dayLog.dateStr}`;
     const content = `⏰ **Giờ thức dậy buổi sáng:** ${dayLog.morningWakeTime}
 🍼 **TỔNG LƯỢNG SỮA TRONG NGÀY:** **${milkStats.grandTotal} ml** (Sữa mẹ: ${milkStats.breastMilkTotal}ml, Sữa CT: ${milkStats.formulaMilkTotal}ml, Sữa đêm: ${milkStats.nightMilk}ml)
-👶 **TỔNG TÃ TRONG NGÀY:** **💦 ${totalWet} cữ ướt**, **💩 ${totalDirty} cữ dơ**
+👶 **TỔNG TÃ TRONG NGÀY:** **💦 ${diaperStats.totalWet} ướt** (Ngày: ${diaperStats.dayWet}, Đêm: ${diaperStats.nightWet}), **💩 ${diaperStats.totalDirty} dơ** (Ngày: ${diaperStats.dayDirty}, Đêm: ${diaperStats.nightDirty})
 
 📅 **Lịch trình EASY (${preset.name}):**
 
@@ -710,8 +802,8 @@ ${dayLog.generalNotes ? `📌 **Ghi chú chung ngày:**\n${dayLog.generalNotes}`
         title,
         content,
         breastMilkVolume: milkStats.grandTotal > 0 ? milkStats.grandTotal : existingEntry.breastMilkVolume,
-        wetDiapers: totalWet > 0 ? totalWet : existingEntry.wetDiapers,
-        dirtyDiapers: totalDirty > 0 ? totalDirty : existingEntry.dirtyDiapers,
+        wetDiapers: diaperStats.totalWet > 0 ? diaperStats.totalWet : existingEntry.wetDiapers,
+        dirtyDiapers: diaperStats.totalDirty > 0 ? diaperStats.totalDirty : existingEntry.dirtyDiapers,
         abnormalNotes: dayLog.generalNotes || existingEntry.abnormalNotes,
       });
       return existingEntry.id;
@@ -723,8 +815,8 @@ ${dayLog.generalNotes ? `📌 **Ghi chú chung ngày:**\n${dayLog.generalNotes}`
         dateStr: dayLog.dateStr,
         images: [],
         breastMilkVolume: milkStats.grandTotal > 0 ? milkStats.grandTotal : null,
-        wetDiapers: totalWet > 0 ? totalWet : null,
-        dirtyDiapers: totalDirty > 0 ? totalDirty : null,
+        wetDiapers: diaperStats.totalWet > 0 ? diaperStats.totalWet : null,
+        dirtyDiapers: diaperStats.totalDirty > 0 ? diaperStats.totalDirty : null,
         abnormalNotes: dayLog.generalNotes || null,
       });
       return newId;

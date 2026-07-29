@@ -1,6 +1,6 @@
 import React from 'react';
 import type { EasyDayLog } from '../data/easyStorage';
-import { EASY_PRESETS, getCycleTotalMilk, getDayTotalMilk } from '../data/easyStorage';
+import { EASY_PRESETS, getCycleTotalMilk, getDayTotalMilk, getDayTotalDiapers } from '../data/easyStorage';
 
 interface PrintableEasyReportProps {
   dayLog: EasyDayLog;
@@ -14,6 +14,7 @@ export const PrintableEasyReport = React.forwardRef<HTMLDivElement, PrintableEas
   ({ dayLog }, ref) => {
     const preset = EASY_PRESETS[dayLog.presetId] || EASY_PRESETS.easy3;
     const milk = getDayTotalMilk(dayLog);
+    const diapers = getDayTotalDiapers(dayLog);
     const stars = (n?: number) => n ? '★'.repeat(n) + '☆'.repeat(5 - n) : '—';
 
     return (
@@ -288,7 +289,7 @@ export const PrintableEasyReport = React.forwardRef<HTMLDivElement, PrintableEas
             <div className="night-item">
               <span className="label">Tã đêm: </span>
               <span className="value">
-                {dayLog.nightWetDiaper ? 'Ướt' : ''}{dayLog.nightWetDiaper && dayLog.nightDirtyDiaper ? ' + ' : ''}{dayLog.nightDirtyDiaper ? 'Dơ' : ''}{!dayLog.nightWetDiaper && !dayLog.nightDirtyDiaper ? '—' : ''}
+                💦 {diapers.nightWet} ướt, 💩 {diapers.nightDirty} dơ
               </span>
             </div>
           </div>
@@ -298,6 +299,54 @@ export const PrintableEasyReport = React.forwardRef<HTMLDivElement, PrintableEas
               <span>{dayLog.nightNotes}</span>
             </div>
           )}
+
+          {/* Night Feeds Detail */}
+          {dayLog.nightFeeds && dayLog.nightFeeds.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: '10px', marginBottom: '4px' }}>Chi tiết từng cữ bú đêm:</div>
+              <table className="cycles-table" style={{ fontSize: '9px' }}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Giờ</th>
+                    <th>Sữa (ml)</th>
+                    <th>Loại</th>
+                    <th>Hãng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dayLog.nightFeeds.map((nf, i) => (
+                    <tr key={nf.id}>
+                      <td style={{ fontWeight: 800 }}>{i + 1}</td>
+                      <td className="td-time">{nf.time}</td>
+                      <td className="td-milk">{nf.milkVolumeMl || '—'}</td>
+                      <td>{nf.milkType === 'formula' ? 'Công thức' : 'Sữa mẹ'}</td>
+                      <td>{nf.formulaBrandName || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Total Diapers Summary */}
+        <div style={{ border: '1.5px solid #0ea5e9', borderRadius: '8px', padding: '10px', marginBottom: '12px' }}>
+          <div style={{ fontWeight: 800, fontSize: '11px', marginBottom: '4px', color: '#0c4a6e' }}>👶 Tổng Tã Cả Ngày</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', fontSize: '10px' }}>
+            <div>
+              <span className="label">Ban ngày: </span>
+              <span className="value">💦 {diapers.dayWet} ướt, 💩 {diapers.dayDirty} dơ</span>
+            </div>
+            <div>
+              <span className="label">Ban đêm: </span>
+              <span className="value">💦 {diapers.nightWet} ướt, 💩 {diapers.nightDirty} dơ</span>
+            </div>
+            <div>
+              <span className="label">Tổng cộng: </span>
+              <span className="value" style={{ fontWeight: 900, color: '#0369a1' }}>💦 {diapers.totalWet} + 💩 {diapers.totalDirty} = {diapers.grandTotalDiapers} tã</span>
+            </div>
+          </div>
         </div>
 
         {/* General Notes */}

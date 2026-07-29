@@ -19,10 +19,10 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { stagesData } from '../data/stages';
-import { pregnancyData } from '../data/pregnancy';
-import { abnormalConditions, firstAidGuides, medicinesList, medicineCabinetItems } from '../data/healthKnowledge';
-import { sleepKnowledgeData } from '../data/sleepKnowledge';
+import { fetchStagesData, DevelopmentStage as StageData } from '../data/stages';
+import { fetchPregnancyData, PregnancyMilestone } from '../data/pregnancy';
+import { fetchHealthKnowledgeData, HealthData } from '../data/healthKnowledge';
+import { fetchSleepKnowledgeData } from '../data/sleepKnowledge';
 
 type CategoryId = 'pregnancy' | 'stages' | 'sleep' | 'abnormal' | 'firstaid' | 'medicine';
 
@@ -119,6 +119,49 @@ export const KnowledgeBase: React.FC = () => {
   // Global All Expanded / Collapsed toggle
   const [isAllExpanded, setIsAllExpanded] = useState<boolean>(false);
 
+  // Dynamic Data States
+  const [stagesData, setStagesData] = useState<StageData[]>([]);
+  const [pregnancyData, setPregnancyData] = useState<PregnancyMilestone[]>([]);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [sleepKnowledgeData, setSleepKnowledgeData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Determine active category (defaulting to 'pregnancy')
+  const activeCatId = (category && CATEGORIES.some(c => c.id === category)) ? category : 'pregnancy';
+  const activeCat = CATEGORIES.find(c => c.id === activeCatId)!;
+  const Icon = activeCat.icon;
+
+  // Load Data Dynamically based on activeCatId
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
+    const loadData = async () => {
+      try {
+        if (activeCatId === 'pregnancy' && pregnancyData.length === 0) {
+          const data = await fetchPregnancyData();
+          if (isMounted) setPregnancyData(data);
+        } else if (activeCatId === 'stages' && stagesData.length === 0) {
+          const data = await fetchStagesData();
+          if (isMounted) setStagesData(data);
+        } else if (activeCatId === 'sleep' && !sleepKnowledgeData) {
+          const data = await fetchSleepKnowledgeData();
+          if (isMounted) setSleepKnowledgeData(data);
+        } else if (['abnormal', 'firstaid', 'medicine'].includes(activeCatId) && !healthData) {
+          const data = await fetchHealthKnowledgeData();
+          if (isMounted) setHealthData(data);
+        }
+      } catch (err) {
+        console.error('Failed to load knowledge data', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    loadData();
+
+    return () => { isMounted = false; };
+  }, [activeCatId]);
+
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -132,10 +175,7 @@ export const KnowledgeBase: React.FC = () => {
     };
   }, []);
 
-  // Determine active category (defaulting to 'pregnancy')
-  const activeCatId = (category && CATEGORIES.some(c => c.id === category)) ? category : 'pregnancy';
-  const activeCat = CATEGORIES.find(c => c.id === activeCatId)!;
-  const Icon = activeCat.icon;
+
 
   const isBlockExpanded = (id: string, defaultState: boolean = false) => {
     if (expandedBlocks[id] !== undefined) {
@@ -511,7 +551,7 @@ export const KnowledgeBase: React.FC = () => {
                             <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200 space-y-2">
                               <strong className="text-emerald-900 font-bold block text-xs">🟢 DẤU HIỆU SỚM (Mẹ nên cho bé đi ngủ ngay):</strong>
                               <ul className="space-y-1">
-                                {sleepKnowledgeData.sleepCues.earlyCues.map((c, idx) => (
+                                {(sleepKnowledgeData?.sleepCues?.earlyCues || []).map((c, idx) => (
                                   <li key={idx} className="flex items-start text-emerald-950">
                                     <span className="mr-1.5 font-bold text-emerald-600">•</span>
                                     <span>{c}</span>
@@ -523,7 +563,7 @@ export const KnowledgeBase: React.FC = () => {
                             <div className="bg-rose-50/50 p-3.5 rounded-xl border border-rose-200 space-y-2">
                               <strong className="text-rose-900 font-bold block text-xs">🚨 DẤU HIỆU MUỘN (Bé đã bị QUÁ GIẤC - Overtired):</strong>
                               <ul className="space-y-1">
-                                {sleepKnowledgeData.sleepCues.lateCues.map((c, idx) => (
+                                {(sleepKnowledgeData?.sleepCues?.lateCues || []).map((c, idx) => (
                                   <li key={idx} className="flex items-start text-rose-950 font-medium">
                                     <span className="mr-1.5 text-rose-600">⚠</span>
                                     <span>{c}</span>
@@ -558,7 +598,7 @@ export const KnowledgeBase: React.FC = () => {
                       {expanded && (
                         <div className="p-5 border-t border-indigo-100 animate-fade-in">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                            {sleepKnowledgeData.bedtimeRoutine.map((step) => (
+                            {(sleepKnowledgeData?.bedtimeRoutine || []).map((step) => (
                               <div key={step.stepNumber} className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
                                 <h4 className="font-extrabold text-indigo-950 text-xs">{step.title}</h4>
                                 <p className="text-gray-700 leading-relaxed font-medium">{step.action}</p>
@@ -592,7 +632,7 @@ export const KnowledgeBase: React.FC = () => {
 
                       {expanded && (
                         <div className="p-5 border-t border-indigo-100 space-y-4 text-xs animate-fade-in">
-                          {sleepKnowledgeData.methods.map((m, idx) => (
+                          {(sleepKnowledgeData?.methods || []).map((m, idx) => (
                             <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-200 pb-2">
                                 <h4 className="font-extrabold text-indigo-950 text-sm">{m.name}</h4>
@@ -630,7 +670,7 @@ export const KnowledgeBase: React.FC = () => {
                       ⏰ Tóm Tắt Nếp Sinh Hoạt EASY Theo Tháng
                     </h3>
                     <div className="space-y-2 text-xs">
-                      {sleepKnowledgeData.easySchedulesSummary.map((easy, eIdx) => (
+                      {(sleepKnowledgeData?.easySchedulesSummary || []).map((easy, eIdx) => (
                         <div key={eIdx} className="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100 flex items-center justify-between">
                           <div>
                             <div className="font-extrabold text-indigo-950 text-xs">{easy.name} ({easy.age})</div>
@@ -651,7 +691,7 @@ export const KnowledgeBase: React.FC = () => {
                       Quy Tắc Môi Trường Ngủ An Toàn (Chống SIDS)
                     </h3>
                     <div className="space-y-2 text-xs">
-                      {sleepKnowledgeData.safeSleepRules.map((rule, rIdx) => (
+                      {(sleepKnowledgeData?.safeSleepRules || []).map((rule, rIdx) => (
                         <div key={rIdx} className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100 text-emerald-950 font-medium leading-relaxed">
                           {rule}
                         </div>
@@ -667,7 +707,7 @@ export const KnowledgeBase: React.FC = () => {
             {/* 4. MẸO & BỆNH */}
             {activeCat.id === 'abnormal' && (
               <div className="space-y-3.5">
-                {abnormalConditions.map((condition, idx) => {
+                {(healthData?.abnormalConditions || []).map((condition, idx) => {
                   const expanded = isBlockExpanded(condition.id, idx === 0);
                   return (
                     <div key={condition.id} className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden transition-all">
@@ -719,7 +759,7 @@ export const KnowledgeBase: React.FC = () => {
             {/* 5. SƠ CẤP CỨU */}
             {activeCat.id === 'firstaid' && (
               <div className="space-y-3.5">
-                {firstAidGuides.map((guide, idx) => {
+                {(healthData?.firstAidGuides || []).map((guide, idx) => {
                   const expanded = isBlockExpanded(guide.id, idx === 0);
                   return (
                     <div key={guide.id} className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden transition-all">
@@ -787,7 +827,7 @@ export const KnowledgeBase: React.FC = () => {
                     📦 Danh Mục Vật Dụng Cần Có Trong Tủ Thuốc Gia Đình
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
-                    {medicineCabinetItems.map((item, idx) => (
+                    {(healthData?.medicineCabinetItems || []).map((item, idx) => (
                       <div key={idx} className="bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 flex items-center space-x-2 text-blue-950 font-medium">
                         <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
                         <span>{item}</span>
@@ -800,7 +840,7 @@ export const KnowledgeBase: React.FC = () => {
                 <div className="space-y-3">
                   <h3 className="text-base font-bold text-gray-900">💊 Hướng Dẫn Sử Dụng & Liều Dùng Thuốc An Toàn</h3>
                   <div className="grid grid-cols-1 gap-3">
-                    {medicinesList.map((med, idx) => {
+                    {(healthData?.medicinesList || []).map((med, idx) => {
                       const expanded = isBlockExpanded(`med_${idx}`, true);
                       return (
                         <div key={idx} className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden transition-all">

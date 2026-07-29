@@ -35,14 +35,18 @@ import {
 } from '../data/vaccineTrackerStorage';
 import { babyProfileStorage, getBabyAgeText, BabyProfile, DEFAULT_BABY_PROFILE } from '../data/babyProfileStorage';
 import { 
-  NATIONAL_VACCINE_MATRIX, 
-  DETAILED_VACCINES, 
-  VACCINE_RULES, 
-  BRAND_VACCINE_CATALOG,
+  fetchVaccineData,
+  VaccineData,
   VaccineBrandPreset
 } from '../data/vaccineKnowledge';
-
 export const VaccinePage: React.FC = () => {
+  const [vaccineData, setVaccineData] = useState<VaccineData | null>(null);
+  useEffect(() => {
+    fetchVaccineData().then(data => setVaccineData(data));
+  }, []);
+
+
+  
   const [babyProfile, setBabyProfile] = useState<BabyProfile>(DEFAULT_BABY_PROFILE);
   const [records, setRecords] = useState<TrackedVaccineRecord[]>(getTrackedVaccines());
   
@@ -79,6 +83,10 @@ export const VaccinePage: React.FC = () => {
     });
     setRecords(getTrackedVaccines());
   }, []);
+
+  if (!vaccineData) return <div className="p-4 text-center">Đang tải dữ liệu vắc-xin...</div>;
+
+  const { NATIONAL_VACCINE_MATRIX, DETAILED_VACCINES, VACCINE_RULES, BRAND_VACCINE_CATALOG } = vaccineData;
 
   const currentVaccineDetail = DETAILED_VACCINES.find(v => v.id === selectedVaccineId) || DETAILED_VACCINES[0];
 

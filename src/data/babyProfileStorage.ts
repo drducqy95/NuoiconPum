@@ -12,10 +12,15 @@ export interface BabyProfile {
   bloodType?: 'A' | 'B' | 'AB' | 'O' | 'unknown';
   allergies?: string;     // Dị ứng (VD: Dị ứng đạm sữa bò, dị ứng hải sản...)
   medicalNotes?: string;  // Tiền sử bệnh lý / Lưu ý sức khỏe
+  medicalHistory?: string;
   pediatricianName?: string; // Bác sĩ nhi khoa phụ trách
   pediatricianPhone?: string; // SĐT bác sĩ / Khẩn cấp
   hospitalName?: string;     // Bệnh viện / Phòng khám quen
   vaccineNotes?: string;     // Ghi chú vắc-xin / Tiêm chủng
+  gestationalAgeWeeks?: number;
+  birthWeightKg?: number;
+  birthHeightCm?: number;
+  birthHeadCircumferenceCm?: number;
 }
 
 export const DEFAULT_BABY_PROFILE: BabyProfile = {
