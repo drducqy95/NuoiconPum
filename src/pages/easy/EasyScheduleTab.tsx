@@ -622,19 +622,19 @@ export const EasyScheduleTab: React.FC = () => {
                           <Sun className="w-3.5 h-3.5 text-amber-600" />
                           <span>ĂN & THỨC (A)</span>
                         </div>
-                        <div className="flex items-center justify-between text-amber-950">
+                        <div className="flex items-center gap-2 text-amber-950">
                           <input
                             type="time"
                             value={cycle.eatStartTime}
                             onChange={(e) => handleCycleEatStartTimeChange(index, e.target.value)}
-                            className="bg-white border border-amber-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none"
+                            className="flex-1 min-w-0 bg-white border border-amber-300 rounded px-2 py-1.5 text-[15px] xs:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
                           />
-                          <span className="text-gray-400">➔</span>
+                          <span className="text-gray-400 text-xs shrink-0">➔</span>
                           <input
                             type="time"
                             value={cycle.eatEndTime}
                             onChange={(e) => handleCycleEatEndTimeChange(index, e.target.value)}
-                            className="bg-white border border-amber-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none"
+                            className="flex-1 min-w-0 bg-white border border-amber-300 rounded px-2 py-1.5 text-[15px] xs:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
                           />
                         </div>
                       </div>
@@ -649,21 +649,21 @@ export const EasyScheduleTab: React.FC = () => {
                             <span>{isNapSkipped ? 'BỎ NAP (CHỈ THỨC)' : 'NGỦ GIẤC NÀY (S)'}</span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between text-indigo-950">
+                        <div className="flex items-center gap-2 text-indigo-950">
                           <input
                             type="time"
                             value={cycle.sleepStartTime}
                             disabled={index === dayLog.cycles.length - 1} // Khóa cữ cuối
                             onChange={(e) => handleCycleSleepStartTimeChange(index, e.target.value)}
-                            className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none disabled:opacity-60 disabled:bg-gray-100"
+                            className="flex-1 min-w-0 bg-white border border-indigo-300 rounded px-2 py-1.5 text-[15px] xs:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60 disabled:bg-gray-100"
                           />
-                          <span className="text-gray-400">➔</span>
+                          <span className="text-gray-400 text-xs shrink-0">➔</span>
                           <input
                             type="time"
                             value={cycle.sleepEndTime}
                             disabled={index === dayLog.cycles.length - 1} // Khóa cữ cuối
                             onChange={(e) => handleCycleSleepEndTimeChange(index, e.target.value)}
-                            className="bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-bold focus:outline-none disabled:opacity-60 disabled:bg-gray-100"
+                            className="flex-1 min-w-0 bg-white border border-indigo-300 rounded px-2 py-1.5 text-[15px] xs:text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60 disabled:bg-gray-100"
                           />
                         </div>
                       </div>
@@ -707,7 +707,7 @@ export const EasyScheduleTab: React.FC = () => {
                                 type="time"
                                 value={cycle.directBreastfeedStartTime || cycle.eatStartTime}
                                 onChange={(e) => handleUpdateCycle(index, { directBreastfeedStartTime: e.target.value })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-rose-500"
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1.5 text-sm font-bold text-center text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
                               />
                             </div>
 
@@ -768,7 +768,7 @@ export const EasyScheduleTab: React.FC = () => {
                                 type="time"
                                 value={cycle.bottleFeedStartTime || cycle.eatStartTime}
                                 onChange={(e) => handleUpdateCycle(index, { bottleFeedStartTime: e.target.value })}
-                                className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-bold text-gray-800 focus:ring-1 focus:ring-amber-500"
+                                className="w-full bg-white border border-gray-300 rounded px-2 py-1.5 text-sm font-bold text-center text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                               />
                             </div>
 
